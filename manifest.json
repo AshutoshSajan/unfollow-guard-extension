@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Unfollow Guard",
+  "version": "1.3.0",
+  "description": "Find who doesn't follow you back on Instagram and Facebook and unfollow them slowly in small safe batches.",
+  "permissions": [
+    "storage"
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Unfollow Guard settings",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.instagram.com/*"
+      ],
+      "js": [
+        "hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://www.instagram.com/*",
+        "https://www.facebook.com/*",
+        "https://web.facebook.com/*"
+      ],
+      "js": [
+        "shared.js",
+        "instagram.js",
+        "facebook.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

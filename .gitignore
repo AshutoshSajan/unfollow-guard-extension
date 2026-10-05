@@ -1,0 +1,49 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies (if you add build tooling later)
+node_modules/
+package-lock.json
+yarn.lock
+bun.lockb
+
+# Build / dist / packaging
+dist/
+build/
+out/
+*.zip
+*.crx
+*.pem
+*.key
+
+# Chrome / extension local artifacts
+*.crx
+key.pem
+
+# Env / secrets — never commit these
+.env
+.env.*
+!.env.example
+
+# Test / coverage artifacts
+coverage/
+.nyc_output/
+
+# Temp
+tmp/
+temp/
