@@ -354,7 +354,7 @@
         );
 
       // A partial following list must still be compared against ALL of your followers (or checked one by one),
-      // otherwise people who do follow you would be wrongly listed as Unfollow Guard.
+      // otherwise people who do follow you would be wrongly listed as non-followers.
       const fewFollowers = counts && counts.followers <= 2000;
       let users = [],
         followersCount = counts ? counts.followers : undefined,

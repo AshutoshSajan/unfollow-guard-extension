@@ -89,7 +89,10 @@ Lists render in chunks, so even thousands of rows stay smooth. There is search o
 
 The extension isn't on a store; you load it as an unpacked extension. It works in **Chrome, Brave, Edge, Opera and other Chromium browsers (version 111 or newer)**.
 
-1. **Download** this repository (or the zip) and **unzip** it somewhere permanent. Chromium remembers the folder, so don't move or delete it afterwards.
+1. **Download** this repository (or the zip) and **unzip** it somewhere permanent. Chromium remembers the folder, so don't move or delete it afterwards. Prefer git so updating is one command:
+   ```bash
+   git clone https://github.com/AshutoshSajan/unfollow-guard-extension.git
+   ```
 2. Open `chrome://extensions` (or `brave://extensions`, `edge://extensions`).
 3. Turn on **Developer mode** (top-right).
 4. Click **Load unpacked** and select the project folder (the one that contains `manifest.json`).
@@ -206,11 +209,11 @@ Facebook support is a **beta feature and has not been tested much**. Facebook ha
 
 1. Open your profile's **Followers** tab and press **Collect followers**. The page scrolls by itself to load the list.
 2. Open your **Following** tab and press **Collect following**.
-3. The Unfollow Guard appear in the panel. Unfollowing is done by clicking the buttons on the **Following** tab.
+3. The non-followers appear in the panel. Unfollowing is done by clicking the buttons on the **Following** tab.
 
 Notes:
 - Your **Followers** list only exists if *Who can follow me* is set to **Public** in your Facebook privacy settings.
-- The "Unfollow Guard" list **includes Pages and public figures** you follow, since they never follow back. Review it before selecting.
+- The "non-followers" list **includes Pages and public figures** you follow, since they never follow back. Review it before selecting.
 - Facebook changes its page structure often; the page-matching code lives in [`facebook.js`](facebook.js) so it is easy to adjust. Text matching assumes an **English** interface.
 - The default daily limit is **20**.
 

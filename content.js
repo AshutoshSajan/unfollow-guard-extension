@@ -387,9 +387,9 @@
   // ---------- state ----------
   // Big data (scan, lists) is read once and cached; small data (keep, gone, history, selection) is saved separately,
   // so ticking, keeping and unfollowing never rewrite the big lists.
-  let scanCache = null; // last saved scan (users = Unfollow Guard)
+  let scanCache = null; // last saved scan (users = non-followers)
   let lists = null; // {followers, following, followingComplete}
-  let users = []; // Unfollow Guard still to decide on
+  let users = []; // non-followers still to decide on
   let keep = {}; // pk -> user kept
   let gone = new Set(); // unfollowed since the last scan
   let hist = []; // unfollow history [{pk, username, full_name, pic, at}]
