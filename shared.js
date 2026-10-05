@@ -3,8 +3,8 @@
   const NFB = (globalThis.NFB = globalThis.NFB || {});
   NFB.adapters = NFB.adapters || {};
   NFB.PLATFORMS = [
-    { id: "instagram", label: "Instagram" },
-    { id: "facebook", label: "Facebook", beta: true },
+    { id: 'instagram', label: 'Instagram' },
+    { id: 'facebook', label: 'Facebook', beta: true },
   ];
   NFB.DEFAULTS = {
     enabled: true,
@@ -14,71 +14,98 @@
     dailyCap_facebook: 20,
     minDelay: 20,
     maxDelay: 60,
-    theme: "system",
-    position: "bottom-right",
+    theme: 'system',
+    position: 'bottom-right',
     draggable: true,
-    igMethod: "api",
+    igMethod: 'api',
   };
   NFB.sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   NFB.rand = (a, b) => a + Math.random() * (b - a);
-  NFB.today = () => new Date().toLocaleDateString("en-CA");
+  NFB.today = () => new Date().toLocaleDateString('en-CA');
   NFB.msToMidnight = () => {
     const n = new Date();
-    return new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1).getTime() - n.getTime();
+    return (
+      new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1).getTime() -
+      n.getTime()
+    );
   };
   NFB.fmtClock = (sec) => {
     sec = Math.max(0, Math.ceil(sec));
-    return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
+    return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
   };
   NFB.fmtHM = (ms) => {
     const m = Math.max(1, Math.ceil(ms / 60000));
     return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
   };
   NFB.fmtWhen = (t) => {
-    const d = new Date(t), now = new Date();
-    const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    return d.toDateString() === now.toDateString() ? `Today ${time}` : `${d.toLocaleDateString([], { day: "numeric", month: "short" })} ${time}`;
+    const d = new Date(t),
+      now = new Date();
+    const time = d.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return d.toDateString() === now.toDateString()
+      ? `Today ${time}`
+      : `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })} ${time}`;
   };
 
-  NFB.getSettings = async () => ({ ...NFB.DEFAULTS, ...(await chrome.storage.local.get(Object.keys(NFB.DEFAULTS))) });
+  NFB.getSettings = async () => ({
+    ...NFB.DEFAULTS,
+    ...(await chrome.storage.local.get(Object.keys(NFB.DEFAULTS))),
+  });
 
   NFB.getDaily = async (p) => {
-    const o = await chrome.storage.local.get("nfb_daily_" + p);
-    const d = o["nfb_daily_" + p];
+    const o = await chrome.storage.local.get('nfb_daily_' + p);
+    const d = o['nfb_daily_' + p];
     return d && d.date === NFB.today() ? d : { date: NFB.today(), count: 0 };
   };
   NFB.bumpDaily = async (p) => {
     const d = await NFB.getDaily(p);
     d.count++;
-    await chrome.storage.local.set({ ["nfb_daily_" + p]: d });
+    await chrome.storage.local.set({ ['nfb_daily_' + p]: d });
     return d.count;
   };
 
   // Moves data saved by older versions to the current keys.
   NFB.migrate = async () => {
-    const flag = await chrome.storage.local.get("igMethodV2");
-    if (!flag.igMethodV2) await chrome.storage.local.set({ igMethod: "api", igMethodV2: true });
-    const o = await chrome.storage.local.get(["nfb_scan", "nfb_scan_instagram", "allowScan", "dailyCap", "nfb_daily"]);
+    const flag = await chrome.storage.local.get('igMethodV2');
+    if (!flag.igMethodV2)
+      await chrome.storage.local.set({ igMethod: 'api', igMethodV2: true });
+    const o = await chrome.storage.local.get([
+      'nfb_scan',
+      'nfb_scan_instagram',
+      'allowScan',
+      'dailyCap',
+      'nfb_daily',
+    ]);
     const upd = {};
-    if (o.nfb_scan && !o.nfb_scan_instagram) upd.nfb_scan_instagram = o.nfb_scan;
+    if (o.nfb_scan && !o.nfb_scan_instagram)
+      upd.nfb_scan_instagram = o.nfb_scan;
     if (o.allowScan !== undefined) upd.allowScan_instagram = o.allowScan;
     if (o.dailyCap !== undefined) upd.dailyCap_instagram = o.dailyCap;
     if (o.nfb_daily) upd.nfb_daily_instagram = o.nfb_daily;
     if (Object.keys(upd).length) {
       await chrome.storage.local.set(upd);
-      await chrome.storage.local.remove(["nfb_scan", "allowScan", "dailyCap", "nfb_daily"]);
+      await chrome.storage.local.remove([
+        'nfb_scan',
+        'allowScan',
+        'dailyCap',
+        'nfb_daily',
+      ]);
     }
   };
 
   NFB.describeScan = (p, sc) => {
     const n = (sc.users || []).length;
-    if (p === "facebook") {
-      const f1 = sc.followersList ? sc.followersList.length : "not collected";
-      const f2 = sc.followingList ? sc.followingList.length : "not collected";
-      return `Followers list: ${f1} · Following list: ${f2} · ${n} non-followers`;
+    if (p === 'facebook') {
+      const f1 = sc.followersList ? sc.followersList.length : 'not collected';
+      const f2 = sc.followingList ? sc.followingList.length : 'not collected';
+      return `Followers list: ${f1} · Following list: ${f2} · ${n} Unfollow Guard`;
     }
-    const chk = sc.range ? `checked #${sc.range.from}–${sc.range.to} of ${sc.following}` : `following ${sc.following}`;
-    return `Scanned ${new Date(sc.at).toLocaleDateString()} · ${chk}, followers ${sc.followers ?? "?"} · ${n} non-followers`;
+    const chk = sc.range
+      ? `checked #${sc.range.from}–${sc.range.to} of ${sc.following}`
+      : `following ${sc.following}`;
+    return `Scanned ${new Date(sc.at).toLocaleDateString()} · ${chk}, followers ${sc.followers ?? '?'} · ${n} Unfollow Guard`;
   };
 
   // ---------- styles ----------
@@ -148,40 +175,48 @@
   // ---------- dialog (replaces the browser's alert/confirm) ----------
   NFB.dialog = (container, o) =>
     new Promise((resolve) => {
-      const ov = document.createElement("div");
-      ov.className = "overlay";
-      const m = document.createElement("div");
-      m.className = "modal";
-      m.setAttribute("role", "dialog");
-      m.setAttribute("aria-modal", "true");
-      const h = document.createElement("h3");
-      h.textContent = o.title || "";
-      const b = document.createElement("div");
-      b.className = "mbody";
+      const ov = document.createElement('div');
+      ov.className = 'overlay';
+      const m = document.createElement('div');
+      m.className = 'modal';
+      m.setAttribute('role', 'dialog');
+      m.setAttribute('aria-modal', 'true');
+      const h = document.createElement('h3');
+      h.textContent = o.title || '';
+      const b = document.createElement('div');
+      b.className = 'mbody';
       if (o.body instanceof Node) b.append(o.body);
-      else b.textContent = o.body || "";
-      const act = document.createElement("div");
-      act.className = "mactions";
-      const done = (v) => { ov.remove(); resolve(v); };
+      else b.textContent = o.body || '';
+      const act = document.createElement('div');
+      act.className = 'mactions';
+      const done = (v) => {
+        ov.remove();
+        resolve(v);
+      };
       if (!o.hideCancel) {
-        const c = document.createElement("button");
-        c.className = "btn";
-        c.textContent = o.cancelText || "Cancel";
+        const c = document.createElement('button');
+        c.className = 'btn';
+        c.textContent = o.cancelText || 'Cancel';
         c.onclick = () => done(false);
         act.append(c);
       }
-      const ok = document.createElement("button");
-      ok.className = "btn " + (o.danger ? "danger" : "primary");
-      ok.textContent = o.confirmText || "OK";
+      const ok = document.createElement('button');
+      ok.className = 'btn ' + (o.danger ? 'danger' : 'primary');
+      ok.textContent = o.confirmText || 'OK';
       ok.onclick = () => done(true);
       act.append(ok);
       m.append(h, b, act);
       ov.append(m);
-      ov.addEventListener("mousedown", (e) => { if (e.target === ov && !o.hideCancel) done(false); });
-      ov.addEventListener("keydown", (e) => {
+      ov.addEventListener('mousedown', (e) => {
+        if (e.target === ov && !o.hideCancel) done(false);
+      });
+      ov.addEventListener('keydown', (e) => {
         e.stopPropagation();
-        if (e.key === "Escape" && !o.hideCancel) done(false);
-        if (e.key === "Enter") { e.preventDefault(); done(true); }
+        if (e.key === 'Escape' && !o.hideCancel) done(false);
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          done(true);
+        }
       });
       container.append(ov);
       ok.focus();
@@ -189,43 +224,59 @@
 
   // ---------- settings form ----------
   const row = (title, hint, control) =>
-    `<div class="srow"><div class="stext"><b>${title}</b>${hint ? `<div class="hint">${hint}</div>` : ""}</div>${control}</div>`;
+    `<div class="srow"><div class="stext"><b>${title}</b>${hint ? `<div class="hint">${hint}</div>` : ''}</div>${control}</div>`;
   const sw = (id) => `<input type="checkbox" class="sw" id="${id}">`;
 
   const general = `
     <div class="sblock">
       <div class="stitle">General</div>
-      ${row("Enable extension", "Turn off to hide the floating button on every site.", sw("enabled"))}
+      ${row('Enable extension', 'Turn off to hide the floating button on every site.', sw('enabled'))}
     </div>`;
   const appearance = `
     <div class="sblock">
       <div class="stitle">Appearance</div>
-      ${row("Theme", "System follows your device's light/dark setting.",
-        `<select class="field ssel" id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select>`)}
-      ${row("Button position", "Used when dragging is off, or after a reset.",
-        `<select class="field ssel" id="position"><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option><option value="top-right">Top right</option><option value="top-left">Top left</option></select>`)}
-      ${row("Allow dragging", "Drag the button anywhere. Its spot is remembered per site.", sw("draggable"))}
-      ${row("Reset dragged position", "Puts the button back at the position above.", `<button class="sbtn plain" id="resetPos">Reset</button>`)}
+      ${row(
+        'Theme',
+        "System follows your device's light/dark setting.",
+        `<select class="field ssel" id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select>`,
+      )}
+      ${row(
+        'Button position',
+        'Used when dragging is off, or after a reset.',
+        `<select class="field ssel" id="position"><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option><option value="top-right">Top right</option><option value="top-left">Top left</option></select>`,
+      )}
+      ${row('Allow dragging', 'Drag the button anywhere. Its spot is remembered per site.', sw('draggable'))}
+      ${row('Reset dragged position', 'Puts the button back at the position above.', `<button class="sbtn plain" id="resetPos">Reset</button>`)}
     </div>`;
   const method = `
     <div class="sblock">
       <div class="stitle">Instagram unfollow method</div>
-      ${row("Method", "Direct API sends the same request Instagram's own page sends and switches to Browser clicks if it is rejected. Browser clicks opens each profile and clicks Following → Unfollow (Instagram must be set to English).",
-        `<select class="field ssel" id="igMethod"><option value="api">Direct API</option><option value="ui">Browser clicks</option></select>`)}
+      ${row(
+        'Method',
+        "Direct API sends the same request Instagram's own page sends and switches to Browser clicks if it is rejected. Browser clicks opens each profile and clicks Following → Unfollow (Instagram must be set to English).",
+        `<select class="field ssel" id="igMethod"><option value="api">Direct API</option><option value="ui">Browser clicks</option></select>`,
+      )}
     </div>`;
   const platform = (p) => `
     <div class="sblock">
-      <div class="stitle">${p.label}${p.beta ? ' <span class="badge" title="Not fully tested yet">BETA</span>' : ""}</div>
-      ${p.beta ? `<div class="hint" style="margin:0 0 6px">Facebook support is a beta feature and has not been tested much. Expect rough edges.</div>` : ""}
-      ${row("Allow scanning", "Locks itself after a successful scan. Turn it on only when you really want to fetch again.", sw("allowScan_" + p.id))}
-      ${row("Daily unfollow cap", "1–100 per day", `<input class="field snum" type="number" id="dailyCap_${p.id}" min="1" max="100">`)}
-      ${row("Saved scan", `<span id="info_${p.id}">No saved scan.</span>`, `<button class="sbtn" id="clear_${p.id}">Clear</button>`)}
+      <div class="stitle">${p.label}${p.beta ? ' <span class="badge" title="Not fully tested yet">BETA</span>' : ''}</div>
+      ${p.beta ? `<div class="hint" style="margin:0 0 6px">Facebook support is a beta feature and has not been tested much. Expect rough edges.</div>` : ''}
+      ${row('Allow scanning', 'Locks itself after a successful scan. Turn it on only when you really want to fetch again.', sw('allowScan_' + p.id))}
+      ${row('Daily unfollow cap', '1–100 per day', `<input class="field snum" type="number" id="dailyCap_${p.id}" min="1" max="100">`)}
+      ${row('Saved scan', `<span id="info_${p.id}">No saved scan.</span>`, `<button class="sbtn" id="clear_${p.id}">Clear</button>`)}
     </div>`;
   NFB.settingsHTML =
-    `<div id="nfbset">` + general + appearance + method + NFB.PLATFORMS.map(platform).join("") +
+    `<div id="nfbset">` +
+    general +
+    appearance +
+    method +
+    NFB.PLATFORMS.map(platform).join('') +
     `<div class="sblock"><div class="stitle">Delay between unfollows</div>
-       ${row("Random delay (seconds)", "A random value between min and max is used.",
-        `<div style="display:flex;gap:6px;align-items:center"><input class="field snum" type="number" id="minDelay" min="10" max="600"> – <input class="field snum" type="number" id="maxDelay" min="10" max="600"></div>`)}
+       ${row(
+         'Random delay (seconds)',
+         'A random value between min and max is used.',
+         `<div style="display:flex;gap:6px;align-items:center"><input class="field snum" type="number" id="minDelay" min="10" max="600"> – <input class="field snum" type="number" id="maxDelay" min="10" max="600"></div>`,
+       )}
      </div>
      <div class="ssaved" id="ssaved"></div></div>`;
 
@@ -234,75 +285,120 @@
     const $ = (id) => root.getElementById(id);
     let timer;
     const flash = (m) => {
-      $("ssaved").textContent = m;
+      $('ssaved').textContent = m;
       clearTimeout(timer);
-      timer = setTimeout(() => ($("ssaved").textContent = ""), 1800);
+      timer = setTimeout(() => ($('ssaved').textContent = ''), 1800);
     };
     const refreshInfo = async () => {
       const s = await NFB.getSettings();
-      $("theme").value = s.theme || "system";
-      $("enabled").checked = !!s.enabled;
+      $('theme').value = s.theme || 'system';
+      $('enabled').checked = !!s.enabled;
       for (const p of NFB.PLATFORMS) {
-        $("allowScan_" + p.id).checked = !!s["allowScan_" + p.id];
-        const o = await chrome.storage.local.get("nfb_scan_" + p.id);
-        const sc = o["nfb_scan_" + p.id];
-        $("info_" + p.id).textContent = sc ? NFB.describeScan(p.id, sc) : "No saved scan.";
+        $('allowScan_' + p.id).checked = !!s['allowScan_' + p.id];
+        const o = await chrome.storage.local.get('nfb_scan_' + p.id);
+        const sc = o['nfb_scan_' + p.id];
+        $('info_' + p.id).textContent = sc
+          ? NFB.describeScan(p.id, sc)
+          : 'No saved scan.';
       }
     };
     const loadAll = async () => {
       const s = await NFB.getSettings();
-      for (const p of NFB.PLATFORMS) $("dailyCap_" + p.id).value = s["dailyCap_" + p.id];
-      $("position").value = s.position;
-      $("draggable").checked = !!s.draggable;
-      $("igMethod").value = s.igMethod || "api";
-      $("minDelay").value = s.minDelay;
-      $("maxDelay").value = s.maxDelay;
+      for (const p of NFB.PLATFORMS)
+        $('dailyCap_' + p.id).value = s['dailyCap_' + p.id];
+      $('position').value = s.position;
+      $('draggable').checked = !!s.draggable;
+      $('igMethod').value = s.igMethod || 'api';
+      $('minDelay').value = s.minDelay;
+      $('maxDelay').value = s.maxDelay;
       await refreshInfo();
     };
     const save = async () => {
       const upd = {};
       for (const p of NFB.PLATFORMS) {
-        upd["allowScan_" + p.id] = $("allowScan_" + p.id).checked;
-        upd["dailyCap_" + p.id] = Math.min(100, Math.max(1, parseInt($("dailyCap_" + p.id).value, 10) || NFB.DEFAULTS["dailyCap_" + p.id]));
+        upd['allowScan_' + p.id] = $('allowScan_' + p.id).checked;
+        upd['dailyCap_' + p.id] = Math.min(
+          100,
+          Math.max(
+            1,
+            parseInt($('dailyCap_' + p.id).value, 10) ||
+              NFB.DEFAULTS['dailyCap_' + p.id],
+          ),
+        );
       }
-      let mn = Math.max(10, parseInt($("minDelay").value, 10) || 20);
-      let mx = Math.max(10, parseInt($("maxDelay").value, 10) || 60);
+      let mn = Math.max(10, parseInt($('minDelay').value, 10) || 20);
+      let mx = Math.max(10, parseInt($('maxDelay').value, 10) || 60);
       if (mx < mn) mx = mn;
-      upd.enabled = $("enabled").checked;
-      upd.theme = $("theme").value;
-      upd.position = $("position").value;
-      upd.draggable = $("draggable").checked;
-      upd.igMethod = $("igMethod").value;
+      upd.enabled = $('enabled').checked;
+      upd.theme = $('theme').value;
+      upd.position = $('position').value;
+      upd.draggable = $('draggable').checked;
+      upd.igMethod = $('igMethod').value;
       upd.minDelay = mn;
       upd.maxDelay = mx;
       await chrome.storage.local.set(upd);
-      flash("Saved");
+      flash('Saved');
     };
-    $("nfbset").querySelectorAll("input, select").forEach((i) => i.addEventListener("change", save));
-    const FABPOS = NFB.PLATFORMS.map((p) => "fabPos_" + p.id);
-    $("position").addEventListener("change", () => chrome.storage.local.remove(FABPOS));
-    $("resetPos").addEventListener("click", async () => {
+    $('nfbset')
+      .querySelectorAll('input, select')
+      .forEach((i) => {
+        if (i.id !== 'enabled') i.addEventListener('change', save);
+      });
+    // Turning the extension off from inside the page asks first, and explains how to get it back.
+    $('enabled').addEventListener('change', async () => {
+      if (!$('enabled').checked && root !== document) {
+        const ok = await NFB.dialog(dialogHost, {
+          title: 'Turn off the extension?',
+          body: "The floating button will disappear from every site. To turn it back on, click the extension's icon in the browser toolbar and switch it on.",
+          confirmText: 'Turn off',
+          danger: true,
+        });
+        if (!ok) {
+          $('enabled').checked = true;
+          return;
+        }
+      }
+      await save();
+    });
+    const FABPOS = NFB.PLATFORMS.map((p) => 'fabPos_' + p.id);
+    $('position').addEventListener('change', () =>
+      chrome.storage.local.remove(FABPOS),
+    );
+    $('resetPos').addEventListener('click', async () => {
       await chrome.storage.local.remove(FABPOS);
-      flash("Position reset");
+      flash('Position reset');
     });
     for (const p of NFB.PLATFORMS) {
-      $("clear_" + p.id).addEventListener("click", async () => {
+      $('clear_' + p.id).addEventListener('click', async () => {
         const ok = await NFB.dialog(dialogHost, {
           title: `Clear the saved ${p.label} scan?`,
-          body: "The saved list, followers and following lists will be removed and you will need to scan again. Your kept accounts and unfollow history are not affected.",
-          confirmText: "Clear scan",
+          body: 'The saved list, followers and following lists will be removed and you will need to scan again. Your kept accounts and unfollow history are not affected.',
+          confirmText: 'Clear scan',
           danger: true,
         });
         if (!ok) return;
-        await chrome.storage.local.remove(["nfb_scan_" + p.id, "nfb_lists_" + p.id, "nfb_gone_" + p.id]);
-        await chrome.storage.local.set({ ["allowScan_" + p.id]: true });
+        await chrome.storage.local.remove([
+          'nfb_scan_' + p.id,
+          'nfb_lists_' + p.id,
+          'nfb_gone_' + p.id,
+        ]);
+        await chrome.storage.local.set({ ['allowScan_' + p.id]: true });
         await loadAll();
-        flash("Cleared. Scanning is allowed again.");
+        flash('Cleared. Scanning is allowed again.');
       });
     }
     let infoT;
     chrome.storage.onChanged.addListener((ch) => {
-      if (!Object.keys(ch).some((k) => k.startsWith("nfb_scan_") || k.startsWith("allowScan_") || k === "theme" || k === "enabled")) return;
+      if (
+        !Object.keys(ch).some(
+          (k) =>
+            k.startsWith('nfb_scan_') ||
+            k.startsWith('allowScan_') ||
+            k === 'theme' ||
+            k === 'enabled',
+        )
+      )
+        return;
       clearTimeout(infoT);
       infoT = setTimeout(refreshInfo, 300);
     });
@@ -312,9 +408,10 @@
   // Keeps the data-theme attribute of `el` in sync with the saved theme (light | dark | system).
   NFB.watchTheme = async (el) => {
     const s = await NFB.getSettings();
-    el.setAttribute("data-theme", s.theme || "system");
+    el.setAttribute('data-theme', s.theme || 'system');
     chrome.storage.onChanged.addListener((ch) => {
-      if (ch.theme) el.setAttribute("data-theme", ch.theme.newValue || "system");
+      if (ch.theme)
+        el.setAttribute('data-theme', ch.theme.newValue || 'system');
     });
   };
 })();

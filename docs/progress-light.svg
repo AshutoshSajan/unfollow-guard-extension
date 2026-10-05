@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 120" width="460" height="120" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
+<defs>
+  <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0095f6"/><stop offset="1" stop-color="#833ab4"/></linearGradient>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b7fe0"/><stop offset=".55" stop-color="#6a3fc8"/><stop offset="1" stop-color="#b13a9f"/></linearGradient>
+</defs>
+<rect x=".5" y=".5" width="459" height="119" rx="16" fill="#ffffff" stroke="#d9dde2"/>
+<circle cx="46" cy="46" r="22" fill="#10b981"/><text x="46" y="53" font-size="19" font-weight="700" fill="#fff" text-anchor="middle">B</text>
+<circle cx="64" cy="64" r="10" fill="#16a34a" stroke="#ffffff" stroke-width="2.5"/><path d="M59.5 64l3 3 5-6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="84" y="40" font-size="14" font-weight="700" fill="#14171a">Unfollowed @brewandbooks</text>
+<text x="84" y="60" font-size="12" fill="#5b6570">30/39 done · next in 0:48 · 3,171 left in list</text>
+<rect x="378" y="30" width="66" height="28" rx="8" fill="#e0245e"/><text x="411" y="49" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">Stop</text>
+<rect x="16" y="92" width="428" height="6" rx="3" fill="#f5f6f8"/><rect x="16" y="92" width="330" height="6" rx="3" fill="#0095f6"/>
+</svg>
