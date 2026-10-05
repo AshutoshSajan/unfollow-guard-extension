@@ -6,18 +6,28 @@
 <style>
   * { box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
   body { margin: 0; }
-  #app { width: 400px; padding: 14px; background: var(--bg2); color: var(--fg); }
-  .top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .top img { width: 36px; height: 36px; }
-  .top b { font-size: 16px; color: var(--fg); }
-  .tip { font-size: 12px; color: var(--fg2); background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; line-height: 1.45; }
+  #app { width: 400px; padding: 16px; background: var(--bg2); color: var(--fg); position: relative; }
+  .top { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 12px; background: var(--bg);
+         border: 1px solid var(--border); border-radius: 14px; }
+  .top img { width: 40px; height: 40px; border-radius: 10px; }
+  .top .name { flex: 1; min-width: 0; }
+  .top b { display: block; font-size: 15px; color: var(--fg); }
+  .top span.state { font-size: 12px; color: var(--fg2); }
+  .tip { font-size: 12px; color: var(--fg2); background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
+         padding: 10px 12px; margin-bottom: 12px; line-height: 1.5; }
+  .tip b { color: var(--fg); }
 </style>
 </head>
 <body>
   <div class="app" id="app" data-theme="system">
-    <div class="top"><img src="icons/icon48.png" alt=""><b>Unfollow Guard settings</b></div>
-    <div class="tip">Open instagram.com or facebook.com and click the blue <b>Unfollow Guard</b> button in the bottom-right corner. The same settings are available there under ⚙ Settings.</div>
+    <div class="top">
+      <img src="icons/icon48.png" alt="">
+      <div class="name"><b>Unfollow Guard</b><span class="state" id="state">Enabled</span></div>
+      <input type="checkbox" class="sw" id="enabledTop" title="Enable / disable the extension">
+    </div>
+    <div class="tip">Open instagram.com or facebook.com and click the floating <b>Unfollow Guard</b> button. Facebook support is <span class="badge">BETA</span>. The same settings are available in the panel under ⚙.</div>
     <div id="settings"></div>
+    <div id="modalhost"></div>
   </div>
   <script src="shared.js"></script>
   <script src="popup.js"></script>

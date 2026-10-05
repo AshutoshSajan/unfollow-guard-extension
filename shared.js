@@ -1,12 +1,13 @@
-// Shared helpers: settings, storage, and the settings form used by both the toolbar popup and the in-page panel.
+// Shared helpers: settings, storage, dialogs and the styles/forms used by the toolbar popup and the in-page panel.
 (() => {
   const NFB = (globalThis.NFB = globalThis.NFB || {});
   NFB.adapters = NFB.adapters || {};
   NFB.PLATFORMS = [
     { id: "instagram", label: "Instagram" },
-    { id: "facebook", label: "Facebook" },
+    { id: "facebook", label: "Facebook", beta: true },
   ];
   NFB.DEFAULTS = {
+    enabled: true,
     allowScan_instagram: true,
     allowScan_facebook: true,
     dailyCap_instagram: 40,
@@ -21,6 +22,23 @@
   NFB.sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   NFB.rand = (a, b) => a + Math.random() * (b - a);
   NFB.today = () => new Date().toLocaleDateString("en-CA");
+  NFB.msToMidnight = () => {
+    const n = new Date();
+    return new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1).getTime() - n.getTime();
+  };
+  NFB.fmtClock = (sec) => {
+    sec = Math.max(0, Math.ceil(sec));
+    return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
+  };
+  NFB.fmtHM = (ms) => {
+    const m = Math.max(1, Math.ceil(ms / 60000));
+    return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+  };
+  NFB.fmtWhen = (t) => {
+    const d = new Date(t), now = new Date();
+    const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return d.toDateString() === now.toDateString() ? `Today ${time}` : `${d.toLocaleDateString([], { day: "numeric", month: "short" })} ${time}`;
+  };
 
   NFB.getSettings = async () => ({ ...NFB.DEFAULTS, ...(await chrome.storage.local.get(Object.keys(NFB.DEFAULTS))) });
 
@@ -36,9 +54,8 @@
     return d.count;
   };
 
-  // Moves data saved by v1.0/v1.1 (Instagram only) to the per-platform keys.
+  // Moves data saved by older versions to the current keys.
   NFB.migrate = async () => {
-    // v1.3: direct API (with the site's own tokens) is the default again; it falls back to browser clicks by itself.
     const flag = await chrome.storage.local.get("igMethodV2");
     if (!flag.igMethodV2) await chrome.storage.local.set({ igMethod: "api", igMethodV2: true });
     const o = await chrome.storage.local.get(["nfb_scan", "nfb_scan_instagram", "allowScan", "dailyCap", "nfb_daily"]);
@@ -58,88 +75,162 @@
     if (p === "facebook") {
       const f1 = sc.followersList ? sc.followersList.length : "not collected";
       const f2 = sc.followingList ? sc.followingList.length : "not collected";
-      return `Followers list: ${f1} · Following list: ${f2} · ${n} non-followers left`;
+      return `Followers list: ${f1} · Following list: ${f2} · ${n} non-followers`;
     }
     const chk = sc.range ? `checked #${sc.range.from}–${sc.range.to} of ${sc.following}` : `following ${sc.following}`;
-    return `Scanned ${new Date(sc.at).toLocaleDateString()} · ${chk}, followers ${sc.followers ?? "?"} · ${n} non-followers left`;
+    return `Scanned ${new Date(sc.at).toLocaleDateString()} · ${chk}, followers ${sc.followers ?? "?"} · ${n} non-followers`;
   };
 
-  const DARK = `--bg:#1c1e21; --bg2:#242628; --fg:#f0f2f5; --fg2:#b0b3b8; --border:#3a3b3c; --border2:#5a5d61;
-    --input-bg:#2b2d30; --hover:#2e3033; --dis-bg:#3a3b3c; --dis-fg:#8a8d91; --dis-border:#4a4b4c;
-    --green:#4cd07d; --red:#ff6b6b; --av-bg:#3a3b3c;`;
+  // ---------- styles ----------
+  const DARK = `--bg:#17191c; --bg2:#1f2226; --fg:#eceff3; --fg2:#9aa4af; --border:#2b2f34; --border2:#3d434a;
+    --input-bg:#22262b; --hover:#252a30; --dis-bg:#2b2f34; --dis-fg:#6f7882; --dis-border:#343a40;
+    --green:#4cd07d; --red:#ff6b6b; --av-bg:#2b2f34; --accent:#1ea1f7; --accent-soft:#0f2a40;
+    --ok-soft:#13291c; --danger:#f0457a; --danger-soft:#3a1622; --warn-soft:#3a2d12;`;
   NFB.themeCSS = `
-    .app { --bg:#fff; --bg2:#f1f3f5; --fg:#111; --fg2:#555; --border:#e0e0e0; --border2:#bbb;
-           --input-bg:#fff; --hover:#f5f8fa; --dis-bg:#e6e6e6; --dis-fg:#666; --dis-border:#d0d0d0;
-           --green:#187a3a; --red:#c62828; --av-bg:#ddd; }
+    .app { --bg:#fff; --bg2:#f5f6f8; --fg:#14171a; --fg2:#5b6570; --border:#e6e8eb; --border2:#cfd4da;
+           --input-bg:#fff; --hover:#f3f6fa; --dis-bg:#eceef1; --dis-fg:#8b95a0; --dis-border:#e1e4e8;
+           --green:#14803c; --red:#d92d20; --av-bg:#e3e6ea; --accent:#0095f6; --accent-soft:#e6f3fe;
+           --ok-soft:#e6f6ec; --danger:#e0245e; --danger-soft:#fde8ef; --warn-soft:#fff4dc; }
     .app[data-theme="dark"] { ${DARK} }
     @media (prefers-color-scheme: dark) { .app[data-theme="system"] { ${DARK} } }
   `;
 
-  NFB.settingsCSS = `
-    .sblock { border: 1px solid var(--border); border-radius: 10px; padding: 4px 12px; margin-bottom: 12px; background: var(--bg); color: var(--fg); }
-    .stitle { font-weight: 700; font-size: 14px; padding: 8px 0 4px; color: var(--fg); }
-    .srow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0;
-            border-top: 1px solid var(--border); color: var(--fg); font-size: 13px; }
-    .stitle + .srow { border-top: 0; }
-    .hint { color: var(--fg2); font-size: 12px; margin-top: 3px; line-height: 1.35; font-weight: 400; }
-    .snum, .ssel { padding: 6px; font-size: 13px; color: var(--fg); background: var(--input-bg); border: 1px solid var(--border2); border-radius: 6px; }
-    .snum { width: 62px; }
-    .sbtn { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--red); background: var(--bg); color: var(--red);
-            font-size: 12px; font-weight: 600; cursor: pointer; flex: none; }
-    .ssaved { color: var(--green); font-size: 13px; min-height: 18px; }
-    .srow input[type=checkbox] { width: 20px; height: 20px; flex: none; }
+  NFB.uiCSS = `
+    .btn { height: 34px; padding: 0 14px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
+           border: 1px solid var(--border2); background: var(--bg); color: var(--fg);
+           display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+    .btn:hover:not(:disabled) { background: var(--hover); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+    .btn.primary:hover:not(:disabled), .btn.danger:hover:not(:disabled) { filter: brightness(1.08); }
+    .btn.sm { height: 28px; padding: 0 10px; font-size: 12px; border-radius: 8px; }
+    .btn:disabled { background: var(--dis-bg); border-color: var(--dis-border); color: var(--dis-fg); cursor: not-allowed; }
+    .btn:focus-visible, .tab:focus-visible, .iconbtn:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .field { height: 34px; padding: 0 10px; font-size: 13px; color: var(--fg); background: var(--input-bg);
+             border: 1px solid var(--border2); border-radius: 10px; }
+    input.sw { appearance: none; -webkit-appearance: none; width: 40px; height: 24px; border-radius: 12px; background: var(--border2);
+               position: relative; cursor: pointer; flex: none; margin: 0; transition: background .15s; }
+    input.sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
+                      background: #fff; transition: left .15s; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+    input.sw:checked { background: var(--accent); }
+    input.sw:checked::after { left: 19px; }
+    .badge { font-size: 10px; font-weight: 800; letter-spacing: .05em; padding: 2px 6px; border-radius: 6px; background: #f59e0b; color: #fff; vertical-align: middle; }
+    .overlay { position: fixed; inset: 0; background: rgba(8,10,14,.55); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+    .modal { width: min(400px, 100%); background: var(--bg); color: var(--fg); border: 1px solid var(--border);
+             border-radius: 18px; box-shadow: 0 24px 60px rgba(0,0,0,.5); padding: 20px; }
+    .modal h3 { margin: 0 0 8px; font-size: 17px; font-weight: 700; color: var(--fg); }
+    .mbody { font-size: 13px; color: var(--fg2); line-height: 1.55; }
+    .mactions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+    .mstack { display: flex; margin: 12px 0 2px; }
+    .mstack .av { width: 34px; height: 34px; border: 2px solid var(--bg); margin-left: -8px; }
+    .mstack .av:first-child { margin-left: 0; }
+    .mstack .more { width: 34px; height: 34px; border-radius: 50%; margin-left: -8px; border: 2px solid var(--bg); background: var(--bg2);
+                    color: var(--fg2); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
   `;
 
-  // Keeps the data-theme attribute of `el` in sync with the saved theme (light | dark | system).
-  NFB.watchTheme = async (el) => {
-    const s = await NFB.getSettings();
-    el.setAttribute("data-theme", s.theme || "system");
-    chrome.storage.onChanged.addListener((ch) => {
-      if (ch.theme) el.setAttribute("data-theme", ch.theme.newValue || "system");
-    });
-  };
+  NFB.settingsCSS = `
+    .sblock { border: 1px solid var(--border); border-radius: 14px; padding: 4px 14px; margin-bottom: 12px; background: var(--bg); color: var(--fg); }
+    .stitle { font-weight: 700; font-size: 13px; padding: 12px 0 4px; color: var(--fg); display: flex; align-items: center; gap: 8px; }
+    .srow { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0;
+            border-top: 1px solid var(--border); color: var(--fg); font-size: 13px; }
+    .stitle + .srow { border-top: 0; }
+    .stext { min-width: 0; }
+    .stext b { font-weight: 600; }
+    .hint { color: var(--fg2); font-size: 12px; margin-top: 3px; line-height: 1.4; font-weight: 400; }
+    .snum { width: 64px; text-align: center; }
+    .ssel { max-width: 190px; }
+    .sbtn { height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--red); background: var(--bg); color: var(--red);
+            font-size: 12px; font-weight: 600; cursor: pointer; flex: none; }
+    .sbtn.plain { border-color: var(--border2); color: var(--fg); }
+    .ssaved { color: var(--green); font-size: 13px; min-height: 18px; text-align: center; }
+  `;
 
-  const block = (p) => `
+  // ---------- dialog (replaces the browser's alert/confirm) ----------
+  NFB.dialog = (container, o) =>
+    new Promise((resolve) => {
+      const ov = document.createElement("div");
+      ov.className = "overlay";
+      const m = document.createElement("div");
+      m.className = "modal";
+      m.setAttribute("role", "dialog");
+      m.setAttribute("aria-modal", "true");
+      const h = document.createElement("h3");
+      h.textContent = o.title || "";
+      const b = document.createElement("div");
+      b.className = "mbody";
+      if (o.body instanceof Node) b.append(o.body);
+      else b.textContent = o.body || "";
+      const act = document.createElement("div");
+      act.className = "mactions";
+      const done = (v) => { ov.remove(); resolve(v); };
+      if (!o.hideCancel) {
+        const c = document.createElement("button");
+        c.className = "btn";
+        c.textContent = o.cancelText || "Cancel";
+        c.onclick = () => done(false);
+        act.append(c);
+      }
+      const ok = document.createElement("button");
+      ok.className = "btn " + (o.danger ? "danger" : "primary");
+      ok.textContent = o.confirmText || "OK";
+      ok.onclick = () => done(true);
+      act.append(ok);
+      m.append(h, b, act);
+      ov.append(m);
+      ov.addEventListener("mousedown", (e) => { if (e.target === ov && !o.hideCancel) done(false); });
+      ov.addEventListener("keydown", (e) => {
+        e.stopPropagation();
+        if (e.key === "Escape" && !o.hideCancel) done(false);
+        if (e.key === "Enter") { e.preventDefault(); done(true); }
+      });
+      container.append(ov);
+      ok.focus();
+    });
+
+  // ---------- settings form ----------
+  const row = (title, hint, control) =>
+    `<div class="srow"><div class="stext"><b>${title}</b>${hint ? `<div class="hint">${hint}</div>` : ""}</div>${control}</div>`;
+  const sw = (id) => `<input type="checkbox" class="sw" id="${id}">`;
+
+  const general = `
     <div class="sblock">
-      <div class="stitle">${p.label}</div>
-      <div class="srow"><div><b>Allow scanning</b>
-        <div class="hint">Locks itself after a successful scan. Turn it on only when you really want to fetch again.</div></div>
-        <input type="checkbox" id="allowScan_${p.id}"></div>
-      <div class="srow"><div><b>Daily unfollow cap</b><div class="hint">1–100 per day</div></div>
-        <input class="snum" type="number" id="dailyCap_${p.id}" min="1" max="100"></div>
-      <div class="srow"><div><b>Saved scan</b><div class="hint" id="info_${p.id}">No saved scan.</div></div>
-        <button class="sbtn" id="clear_${p.id}">Clear</button></div>
-      <div class="srow"><div><b>Kept accounts</b><div class="hint" id="keepinfo_${p.id}">None</div></div>
-        <button class="sbtn" id="clearKeep_${p.id}">Clear</button></div>
+      <div class="stitle">General</div>
+      ${row("Enable extension", "Turn off to hide the floating button on every site.", sw("enabled"))}
     </div>`;
   const appearance = `
     <div class="sblock">
       <div class="stitle">Appearance</div>
-      <div class="srow"><div><b>Theme</b><div class="hint">System follows your device's light/dark setting.</div></div>
-        <select class="ssel" id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
-      <div class="srow"><div><b>Button position</b><div class="hint">Where the Unfollow Guard button sits. Used when dragging is off, or after a reset.</div></div>
-        <select class="ssel" id="position"><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option><option value="top-right">Top right</option><option value="top-left">Top left</option></select></div>
-      <div class="srow"><div><b>Allow dragging</b><div class="hint">Drag the button anywhere. Its spot is remembered for each site.</div></div>
-        <input type="checkbox" id="draggable"></div>
-      <div class="srow"><div><b>Reset dragged position</b><div class="hint">Puts the button back at the position chosen above.</div></div>
-        <button class="sbtn" id="resetPos">Reset</button></div>
+      ${row("Theme", "System follows your device's light/dark setting.",
+        `<select class="field ssel" id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select>`)}
+      ${row("Button position", "Used when dragging is off, or after a reset.",
+        `<select class="field ssel" id="position"><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option><option value="top-right">Top right</option><option value="top-left">Top left</option></select>`)}
+      ${row("Allow dragging", "Drag the button anywhere. Its spot is remembered per site.", sw("draggable"))}
+      ${row("Reset dragged position", "Puts the button back at the position above.", `<button class="sbtn plain" id="resetPos">Reset</button>`)}
     </div>`;
   const method = `
     <div class="sblock">
       <div class="stitle">Instagram unfollow method</div>
-      <div class="srow"><div><b>Method</b>
-        <div class="hint">Direct API sends the same request Instagram's own page sends. If Instagram rejects it, the batch switches to Browser clicks (opens each profile and clicks Following → Unfollow; Instagram must be set to English).</div></div>
-        <select class="ssel" id="igMethod"><option value="api">Direct API (falls back to browser clicks)</option><option value="ui">Browser clicks only</option></select></div>
+      ${row("Method", "Direct API sends the same request Instagram's own page sends and switches to Browser clicks if it is rejected. Browser clicks opens each profile and clicks Following → Unfollow (Instagram must be set to English).",
+        `<select class="field ssel" id="igMethod"><option value="api">Direct API</option><option value="ui">Browser clicks</option></select>`)}
+    </div>`;
+  const platform = (p) => `
+    <div class="sblock">
+      <div class="stitle">${p.label}${p.beta ? ' <span class="badge" title="Not fully tested yet">BETA</span>' : ""}</div>
+      ${p.beta ? `<div class="hint" style="margin:0 0 6px">Facebook support is a beta feature and has not been tested much. Expect rough edges.</div>` : ""}
+      ${row("Allow scanning", "Locks itself after a successful scan. Turn it on only when you really want to fetch again.", sw("allowScan_" + p.id))}
+      ${row("Daily unfollow cap", "1–100 per day", `<input class="field snum" type="number" id="dailyCap_${p.id}" min="1" max="100">`)}
+      ${row("Saved scan", `<span id="info_${p.id}">No saved scan.</span>`, `<button class="sbtn" id="clear_${p.id}">Clear</button>`)}
     </div>`;
   NFB.settingsHTML =
-    `<div id="nfbset">` + appearance + method + NFB.PLATFORMS.map(block).join("") +
+    `<div id="nfbset">` + general + appearance + method + NFB.PLATFORMS.map(platform).join("") +
     `<div class="sblock"><div class="stitle">Delay between unfollows</div>
-       <div class="srow"><div class="hint">Random delay in seconds (min – max)</div>
-       <div><input class="snum" type="number" id="minDelay" min="10" max="600"> – <input class="snum" type="number" id="maxDelay" min="10" max="600"></div></div></div>
+       ${row("Random delay (seconds)", "A random value between min and max is used.",
+        `<div style="display:flex;gap:6px;align-items:center"><input class="field snum" type="number" id="minDelay" min="10" max="600"> – <input class="field snum" type="number" id="maxDelay" min="10" max="600"></div>`)}
+     </div>
      <div class="ssaved" id="ssaved"></div></div>`;
 
-  // root: document (popup) or a ShadowRoot (in-page panel)
-  NFB.bindSettings = async (root) => {
+  // root: document (popup) or a ShadowRoot (in-page panel). dialogHost: where confirmation dialogs are shown.
+  NFB.bindSettings = async (root, dialogHost) => {
     const $ = (id) => root.getElementById(id);
     let timer;
     const flash = (m) => {
@@ -149,24 +240,21 @@
     };
     const refreshInfo = async () => {
       const s = await NFB.getSettings();
-      $("theme").value = s.theme || "system"; // stays in sync with the panel's theme button
+      $("theme").value = s.theme || "system";
+      $("enabled").checked = !!s.enabled;
       for (const p of NFB.PLATFORMS) {
         $("allowScan_" + p.id).checked = !!s["allowScan_" + p.id];
         const o = await chrome.storage.local.get("nfb_scan_" + p.id);
         const sc = o["nfb_scan_" + p.id];
         $("info_" + p.id).textContent = sc ? NFB.describeScan(p.id, sc) : "No saved scan.";
-        const ko = await chrome.storage.local.get("nfb_keep_" + p.id);
-        const kn = (ko["nfb_keep_" + p.id] || []).length;
-        $("keepinfo_" + p.id).textContent = kn ? `${kn} hidden from the list (never unfollowed)` : "None";
       }
     };
     const loadAll = async () => {
       const s = await NFB.getSettings();
       for (const p of NFB.PLATFORMS) $("dailyCap_" + p.id).value = s["dailyCap_" + p.id];
-      $("theme").value = s.theme || "system";
       $("position").value = s.position;
-      $("igMethod").value = s.igMethod || "api";
       $("draggable").checked = !!s.draggable;
+      $("igMethod").value = s.igMethod || "api";
       $("minDelay").value = s.minDelay;
       $("maxDelay").value = s.maxDelay;
       await refreshInfo();
@@ -180,10 +268,11 @@
       let mn = Math.max(10, parseInt($("minDelay").value, 10) || 20);
       let mx = Math.max(10, parseInt($("maxDelay").value, 10) || 60);
       if (mx < mn) mx = mn;
+      upd.enabled = $("enabled").checked;
       upd.theme = $("theme").value;
       upd.position = $("position").value;
-      upd.igMethod = $("igMethod").value;
       upd.draggable = $("draggable").checked;
+      upd.igMethod = $("igMethod").value;
       upd.minDelay = mn;
       upd.maxDelay = mx;
       await chrome.storage.local.set(upd);
@@ -191,35 +280,41 @@
     };
     $("nfbset").querySelectorAll("input, select").forEach((i) => i.addEventListener("change", save));
     const FABPOS = NFB.PLATFORMS.map((p) => "fabPos_" + p.id);
-    $("position").addEventListener("change", () => chrome.storage.local.remove(FABPOS)); // a preset overrides a dragged spot
+    $("position").addEventListener("change", () => chrome.storage.local.remove(FABPOS));
     $("resetPos").addEventListener("click", async () => {
       await chrome.storage.local.remove(FABPOS);
       flash("Position reset");
     });
     for (const p of NFB.PLATFORMS) {
       $("clear_" + p.id).addEventListener("click", async () => {
-        if (!confirm(`Clear the saved ${p.label} scan? You will need to scan again.`)) return;
-        await chrome.storage.local.remove("nfb_scan_" + p.id);
+        const ok = await NFB.dialog(dialogHost, {
+          title: `Clear the saved ${p.label} scan?`,
+          body: "The saved list, followers and following lists will be removed and you will need to scan again. Your kept accounts and unfollow history are not affected.",
+          confirmText: "Clear scan",
+          danger: true,
+        });
+        if (!ok) return;
+        await chrome.storage.local.remove(["nfb_scan_" + p.id, "nfb_lists_" + p.id, "nfb_gone_" + p.id]);
         await chrome.storage.local.set({ ["allowScan_" + p.id]: true });
         await loadAll();
         flash("Cleared. Scanning is allowed again.");
       });
     }
-    for (const p of NFB.PLATFORMS) {
-      $("clearKeep_" + p.id).addEventListener("click", async () => {
-        if (!confirm(`Clear the ${p.label} kept list? Those accounts can show up in scans again.`)) return;
-        await chrome.storage.local.remove("nfb_keep_" + p.id);
-        await refreshInfo();
-        flash("Kept list cleared");
-      });
-    }
     let infoT;
     chrome.storage.onChanged.addListener((ch) => {
-      // only react to settings/scan changes, not to every selection tick
-      if (!Object.keys(ch).some((k) => k.startsWith("nfb_scan_") || k.startsWith("allowScan_") || k === "theme")) return;
+      if (!Object.keys(ch).some((k) => k.startsWith("nfb_scan_") || k.startsWith("allowScan_") || k === "theme" || k === "enabled")) return;
       clearTimeout(infoT);
       infoT = setTimeout(refreshInfo, 300);
     });
     await loadAll();
+  };
+
+  // Keeps the data-theme attribute of `el` in sync with the saved theme (light | dark | system).
+  NFB.watchTheme = async (el) => {
+    const s = await NFB.getSettings();
+    el.setAttribute("data-theme", s.theme || "system");
+    chrome.storage.onChanged.addListener((ch) => {
+      if (ch.theme) el.setAttribute("data-theme", ch.theme.newValue || "system");
+    });
   };
 })();

@@ -75,11 +75,21 @@
     const own = ownKey();
     mainEl().querySelectorAll("a[href]").forEach((a) => {
       const hit = keyFromHref(a.href);
-      if (!hit || hit.key === own || map.has(hit.key)) return;
+      if (!hit || hit.key === own) return;
+      if (k !== "followers" && map.has(hit.key)) return;
       const name = (a.textContent || "").trim();
       if (k === "followers") {
         // Be liberal here: over-collecting followers is safe, missing one would wrongly mark a follower as a non-follower.
-        map.set(hit.key, { pk: hit.key });
+        const prevU = map.get(hit.key);
+        const row = rowFor(a, hit.key);
+        map.set(hit.key, {
+          pk: hit.key,
+          username: name || (prevU && prevU.username) || hit.key,
+          full_name: "",
+          pic: (row && avatarIn(row)) || (prevU && prevU.pic) || "",
+          verified: false,
+          url: hit.url,
+        });
         return;
       }
       if (!name) return;
@@ -171,15 +181,18 @@
       if (scan.followersList && scan.followingList) {
         const fs = new Set(scan.followersList);
         scan.users = scan.followingList.filter((u) => !fs.has(u.pk));
+        const lists = { at: Date.now(), [k]: arr };
         return {
           complete: true,
           scan,
+          lists,
           message: `Following ${scan.following}, followers ${scan.followers}. ${scan.users.length} don't follow you back (this includes Pages and public figures). Scan is now locked.`,
         };
       }
       scan.users = scan.users || [];
+      const lists = { at: Date.now(), [k]: arr };
       const other = k === "followers" ? "Following" : "Followers";
-      return { complete: false, scan, message: `Collected ${arr.length} ${k}. Now open your ${other} tab and click again.` };
+      return { complete: false, scan, lists, message: `Collected ${arr.length} ${k}. Now open your ${other} tab and click again.` };
     },
 
     async unfollow(u) {

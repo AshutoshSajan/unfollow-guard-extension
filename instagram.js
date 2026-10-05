@@ -127,37 +127,66 @@
   }
 
   // ---- Browser-click method: runs on the profile page of the account ----
+  const stopCheck = () => {
+    if (NFB.shouldStop && NFB.shouldStop()) { const e = new Error("Stopped"); e.stopped = true; throw e; }
+  };
   const waitFor = async (fn, ms) => {
     const t0 = Date.now();
     while (Date.now() - t0 < ms) {
+      stopCheck();
       const v = fn();
       if (v) return v;
       await NFB.sleep(300);
     }
     return null;
   };
+  // innerText ignores the hidden <title> inside icons (textContent would read "FollowingDown chevron icon").
+  const labelOf = (el) => (((el.innerText || el.textContent || "").trim().split("\n")[0]) || "").trim();
   const btnWithText = (root, re) =>
-    [...root.querySelectorAll('button, [role="button"]')].find((b) => re.test((b.textContent || "").trim()));
+    [...root.querySelectorAll('button, [role="button"]')].find((b) => re.test(labelOf(b)));
+  const realClick = (el) => {
+    el.scrollIntoView({ block: "center" });
+    for (const t of ["pointerdown", "mousedown", "pointerup", "mouseup", "click"]) {
+      el.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window }));
+    }
+  };
+  const profileHeader = (u) => {
+    const hs = [...document.querySelectorAll("header")];
+    return hs.find((h) => (h.innerText || "").toLowerCase().includes(u.username.toLowerCase())) || hs[0] || null;
+  };
+  const findUnfollow = () => {
+    for (const d of document.querySelectorAll('[role="dialog"], [role="menu"]')) {
+      const b = btnWithText(d, /^Unfollow$/i);
+      if (b) return b;
+    }
+    return btnWithText(document, /^Unfollow$/i);
+  };
   const BLOCKED = /try again later|action blocked|we restrict certain activity|temporarily blocked/i;
 
   async function unfollowViaUI(u) {
-    const head = await waitFor(() => document.querySelector("header"), 15000);
+    const head = await waitFor(() => profileHeader(u), 15000);
     if (!head) throw new Error(`The profile page of ${u.username} didn't load`);
-    const rel = await waitFor(() => btnWithText(head, /^(Following|Requested|Follow|Follow Back)$/i), 15000);
-    if (!rel) throw new Error(`Couldn't find the Following button on ${u.username}'s profile (Instagram must be set to English, and the account must still exist)`);
-    const label = (rel.textContent || "").trim();
+    const rel = await waitFor(() => {
+      const h = profileHeader(u);
+      return h && btnWithText(h, /^(Following|Requested|Follow|Follow Back)$/i);
+    }, 15000);
+    if (!rel) {
+      const seen = [...(profileHeader(u) || head).querySelectorAll('button, [role="button"]')].map(labelOf).filter(Boolean).slice(0, 8);
+      throw new Error(`Couldn't find the Following button on ${u.username}'s profile. Buttons seen: [${seen.join(" | ")}]. Instagram must be set to English.`);
+    }
+    const label = labelOf(rel);
     if (/^follow(\s?back)?$/i.test(label)) return;            // already not following
     if (/^requested$/i.test(label)) throw new Error(`${u.username}: a follow request is pending, nothing to unfollow`);
 
-    rel.click();
+    realClick(rel);
     for (let n = 0; n < 2; n++) {                              // menu item, then (private accounts) a confirm button
-      const un = await waitFor(() => btnWithText(document, /^Unfollow$/i), n === 0 ? 8000 : 3000);
+      const un = await waitFor(findUnfollow, n === 0 ? 8000 : 3000);
       if (!un) break;
-      un.click();
+      realClick(un);
       await NFB.sleep(NFB.rand(900, 1600));
     }
     const done = await waitFor(() => {
-      const h = document.querySelector("header");
+      const h = profileHeader(u);
       return h && btnWithText(h, /^Follow(\s?Back)?$/i);
     }, 10000);
     if (!done) {
@@ -167,7 +196,7 @@
         err.fatal = true;
         throw err;
       }
-      throw new Error(`Couldn't confirm that ${u.username} was unfollowed`);
+      throw new Error(`Couldn't confirm that ${u.username} was unfollowed (no Unfollow option appeared, or it didn't take effect)`);
     }
   }
 
@@ -224,11 +253,12 @@
       // A partial following list must still be compared against ALL of your followers (or checked one by one),
       // otherwise people who do follow you would be wrongly listed as non-followers.
       const fewFollowers = counts && counts.followers <= 2000;
-      let users = [], followersCount = counts ? counts.followers : undefined;
+      let users = [], followersCount = counts ? counts.followers : undefined, followersArr = null;
       if (!limit || fewFollowers) {
         setStatus("Fetching followers…");
         const followers = await fetchList("followers", uid, (n) => setStatus(`Fetching followers… ${n}`));
         followersCount = followers.length;
+        followersArr = followers;
         const fset = new Set(followers.map((u) => String(u.pk || u.id)));
         users = following.filter((u) => !fset.has(String(u.pk || u.id))).map(toUser);
       } else {
@@ -243,6 +273,12 @@
       const range = limit ? ` (#${start + 1}–${start + following.length})` : "";
       return {
         complete: true,
+        lists: {
+          at: Date.now(),
+          followers: followersArr ? followersArr.map(toUser) : null,
+          following: all.map(toUser),
+          followingComplete: !limit,
+        },
         scan: {
           at: Date.now(),
           followers: followersCount,
