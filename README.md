@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/banner.svg" alt="Non-Followers: see who doesn't follow you back and unfollow safely" width="100%">
+<img src="docs/banner.svg" alt="Unfollow Guard: see who doesn't follow you back and unfollow safely" width="100%">
 
 <br>
 
@@ -18,7 +18,7 @@
 
 ## 📖 Overview
 
-**Non-Followers** is a Chromium extension that compares who you follow with who follows you back, shows the result in a clean in-page panel, and lets you unfollow the accounts you choose **slowly and in small batches**, the way a person would.
+**Unfollow Guard** is a Chromium extension that compares who you follow with who follows you back, shows the result in a clean in-page panel, and lets you unfollow the accounts you choose **slowly and in small batches**, the way a person would.
 
 It was built for the very common situation of following thousands of accounts while only a few follow back, where unfollowing everyone at once is exactly what gets accounts rate-limited or blocked. So the extension is built around **control and restraint**:
 
@@ -99,14 +99,14 @@ The extension isn't on a store; you load it as an unpacked extension. It works i
 3. Turn on **Developer mode** (top-right).
 4. Click **Load unpacked** and select the project folder (the one that contains `manifest.json`).
 5. *(Optional)* Pin the extension from the puzzle-piece menu so the toolbar popup is one click away.
-6. Open [instagram.com](https://www.instagram.com) or [facebook.com](https://www.facebook.com) and **refresh the tab**. A blue **Non-followers** button appears in a corner.
+6. Open [instagram.com](https://www.instagram.com) or [facebook.com](https://www.facebook.com) and **refresh the tab**. A blue **Unfollow Guard** button appears in a corner.
 
 > [!TIP]
 > **Updating:** unzip the new version over the old folder, click the ↻ reload icon on the extension card, then **refresh your Instagram/Facebook tab**. Your saved scans, kept accounts and history stay in place.
 
 ## 🧭 Quick start
 
-1. **Open the panel**: click the floating **Non-followers** button (drag it wherever it doesn't get in the way).
+1. **Open the panel**: click the floating **Unfollow Guard** button (drag it wherever it doesn't get in the way).
 2. **Scan**: choose how many accounts to check (for example *first 50*), then press **Scan** and confirm.
 3. **Review**: go through **To unfollow** (and check **Changes** to see who unfollowed you since last time). Press **Keep** on anyone you never want to unfollow, and look at **Mutuals**/**Followers**/**Following** for the full picture.
 4. **Select**: tick accounts by hand, or use **Select first** / **Select all** (limited to what's left of today's limit).
@@ -137,7 +137,7 @@ Instagram's web app talks to its own JSON endpoints. The extension reads the sam
 sequenceDiagram
     autonumber
     actor You
-    participant Panel as Non-Followers panel
+    participant Panel as Unfollow Guard panel
     participant IG as Instagram
     You->>Panel: Select accounts (≤ daily limit) and confirm
     loop One account every 20-60 s
@@ -316,7 +316,7 @@ for f in shared instagram facebook content popup background hook; do node --chec
 ```
 
 Tips:
-- Console messages are prefixed with `[Non-Followers]`.
+- Console messages are prefixed with `[Unfollow Guard]`.
 - All data lives in `chrome.storage.local`. Inspect it from the extension's service-worker console with `chrome.storage.local.get(null, console.log)`.
 - Avoid naming top-level variables in extension pages after window properties (`top`, `name`, `status`…); they can stop a script from running.
 

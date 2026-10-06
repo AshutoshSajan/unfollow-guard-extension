@@ -1,4 +1,8 @@
 // Shared helpers: settings, storage, dialogs and the styles/forms used by the toolbar popup and the in-page panel.
+// NOTE: the `NFB` namespace and all `nfb_*` storage keys / element ids are the
+// legacy "Non-Followers" identifiers kept DELIBERATELY. Renaming them orphans
+// every existing user's saved scans, keep lists and history. Only user-visible
+// strings use the "Unfollow Guard" name.
 (() => {
   const NFB = (globalThis.NFB = globalThis.NFB || {});
   NFB.adapters = NFB.adapters || {};

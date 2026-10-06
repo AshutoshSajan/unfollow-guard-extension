@@ -130,11 +130,11 @@
     .toast { background: #1f2933; color: #fff; font-size: 13px; padding: 9px 14px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.35); max-width: 380px; }
   </style>
   <div class="app" id="app" data-theme="system">
-    <button class="fab" id="fab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="10" cy="8" r="4"/><path d="M2 21a8 8 0 0 1 16 0"/><path d="M16 12h6"/></svg><span>Non-followers</span></button>
+    <button class="fab" id="fab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="10" cy="8" r="4"/><path d="M2 21a8 8 0 0 1 16 0"/><path d="M16 12h6"/></svg><span>Unfollow Guard</span></button>
 
     <div class="panel" id="panel">
       <div class="head">
-        <div class="brand">${LOGO}<div><div class="title">Non-Followers</div>
+        <div class="brand">${LOGO}<div><div class="title">Unfollow Guard</div>
           <div class="sub">${A.label}${IS_BETA ? ' <span class="badge" title="Facebook support is not fully tested yet">BETA</span>' : ""}<span id="acct"></span></div></div></div>
         <div class="hbtns">
           <button class="iconbtn" id="themeBtn" title="Change theme">◐</button>
@@ -217,7 +217,7 @@
     d.textContent = new Date().toLocaleTimeString() + "  " + t;
     logBox.prepend(d);
     while (logBox.childElementCount > 80) logBox.lastChild.remove();
-    console.log("[Non-Followers]", t);
+    console.log("[Unfollow Guard]", t);
   };
 
   const placeholder = (u) => {
