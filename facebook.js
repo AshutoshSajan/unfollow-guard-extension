@@ -123,9 +123,13 @@
   const btnsIn = (row) => [...row.querySelectorAll('[role="button"],button')];
   const txt = (el) => (el.textContent || "").trim();
 
+  const getCookie = (n) => (document.cookie.split("; ").find((c) => c.startsWith(n + "=")) || "").split("=")[1];
+
   NFB.adapters.facebook = {
     id: "facebook",
     label: "Facebook",
+    followerDiff: false,                      // scrolled lists may be incomplete, so no "who unfollowed me" log
+    accountId: () => getCookie("c_user") || "default",
     match: () => /(^|\.)facebook\.com$/.test(location.hostname),
     scanConfirm: (o) =>
       kind() === "following" && o.limit

@@ -1,13 +1,13 @@
 <div align="center">
 
-<img src="docs/banner.svg" alt="Unfollow Guard: see who doesn't follow you back and unfollow safely" width="100%">
+<img src="docs/banner.svg" alt="Non-Followers: see who doesn't follow you back and unfollow safely" width="100%">
 
 <br>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-0095f6?style=for-the-badge&logo=googlechrome&logoColor=white)](manifest.json)
 [![Chromium 111+](https://img.shields.io/badge/Chromium-111%2B-6a3fc8?style=for-the-badge&logo=brave&logoColor=white)](#-installation)
-[![Version](https://img.shields.io/badge/version-1.4.1-16a34a?style=for-the-badge)](manifest.json)
+[![Version](https://img.shields.io/badge/version-1.5.0-16a34a?style=for-the-badge)](manifest.json)
 [![Facebook: beta](https://img.shields.io/badge/Facebook-BETA-f59e0b?style=for-the-badge&logo=facebook&logoColor=white)](#-facebook-beta)
 
 **[Features](#-features) · [Installation](#-installation) · [Quick start](#-quick-start) · [How it works](#-how-it-works) · [Safety](#-safety--limits) · [Privacy](#-privacy--permissions) · [Troubleshooting](#-troubleshooting)**
@@ -18,7 +18,7 @@
 
 ## 📖 Overview
 
-**Unfollow Guard** is a Chromium extension that compares who you follow with who follows you back, shows the result in a clean in-page panel, and lets you unfollow the accounts you choose **slowly and in small batches**, the way a person would.
+**Non-Followers** is a Chromium extension that compares who you follow with who follows you back, shows the result in a clean in-page panel, and lets you unfollow the accounts you choose **slowly and in small batches**, the way a person would.
 
 It was built for the very common situation of following thousands of accounts while only a few follow back, where unfollowing everyone at once is exactly what gets accounts rate-limited or blocked. So the extension is built around **control and restraint**:
 
@@ -48,10 +48,12 @@ It was built for the very common situation of following thousands of accounts wh
 
 ## ✨ Features
 
-### 🔍 Find the Unfollow Guard
+### 🔍 Find the non-followers
 - **One-click scan** that compares your following list with your followers.
 - **Scan only what you need**: the first 50 / 100 / 250 / 500 accounts you follow, or all, with a **"from #"** offset to continue where you stopped.
 - **Accurate by design**: a partial following list is always compared against your *complete* followers (or each account is checked individually when you have a very large audience), so nobody who follows you is ever listed by mistake.
+- **Follower changes**: every full scan is compared with the previous one, so you can see who unfollowed you and who followed you. A follower list that looks incomplete (it doesn't match Instagram's own count) is never compared, so nobody is reported as lost by mistake.
+- **Separate data per account**: scans, kept lists, history and counters are stored for each logged-in account, so switching accounts never mixes them up.
 - **Scan lock**: after every scan the button locks itself, so an accidental double-click can't send hundreds of requests. Unlock it deliberately in the settings.
 
 ### 🗂 Everything in tabs
@@ -64,6 +66,7 @@ It was built for the very common situation of following thousands of accounts wh
 | **Followers** | Everyone who follows you (and whether you follow them back). |
 | **Following** | Everyone you follow (and whether they follow you back). |
 | **Unfollowed** | Your history of accounts unfollowed with the extension, with date and time. |
+| **Changes** *(Instagram)* | **Who unfollowed you** and **who started following you** since your previous scan, with dates. |
 
 Lists render in chunks, so even thousands of rows stay smooth. There is search on every tab, and the header shows live **Following / Followers / Mutual / To unfollow** counters.
 
@@ -75,6 +78,8 @@ Lists render in chunks, so even thousands of rows stay smooth. There is search o
 - **Time-left chip**: "Next unfollow in 0:48", "Ready to unfollow", or "Daily limit reached · resets in 5h 12m".
 - **Stop button** that works instantly, even between page loads.
 - **Stops by itself** on rate limits, action blocks, logouts, or after three failures in a row.
+- **Cool-down after a block** (default 6 h): if the site blocks or rate-limits an action, unfollowing is paused for hours, even after a browser restart. You can end it early, after a warning.
+- **Active hours** (optional): a batch only runs inside the time window you choose (windows that cross midnight, like 22:00–06:00, work too) and waits for it to open.
 - **Activity log** that records every ✓ and ✗ with the reason.
 - **Live progress card** with the avatar and username of the account being processed, and of the one just unfollowed.
 
@@ -89,24 +94,21 @@ Lists render in chunks, so even thousands of rows stay smooth. There is search o
 
 The extension isn't on a store; you load it as an unpacked extension. It works in **Chrome, Brave, Edge, Opera and other Chromium browsers (version 111 or newer)**.
 
-1. **Download** this repository (or the zip) and **unzip** it somewhere permanent. Chromium remembers the folder, so don't move or delete it afterwards. Prefer git so updating is one command:
-   ```bash
-   git clone https://github.com/AshutoshSajan/unfollow-guard-extension.git
-   ```
+1. **Download** this repository (or the zip) and **unzip** it somewhere permanent. Chromium remembers the folder, so don't move or delete it afterwards.
 2. Open `chrome://extensions` (or `brave://extensions`, `edge://extensions`).
 3. Turn on **Developer mode** (top-right).
 4. Click **Load unpacked** and select the project folder (the one that contains `manifest.json`).
 5. *(Optional)* Pin the extension from the puzzle-piece menu so the toolbar popup is one click away.
-6. Open [instagram.com](https://www.instagram.com) or [facebook.com](https://www.facebook.com) and **refresh the tab**. A blue **Unfollow Guard** button appears in a corner.
+6. Open [instagram.com](https://www.instagram.com) or [facebook.com](https://www.facebook.com) and **refresh the tab**. A blue **Non-followers** button appears in a corner.
 
 > [!TIP]
 > **Updating:** unzip the new version over the old folder, click the ↻ reload icon on the extension card, then **refresh your Instagram/Facebook tab**. Your saved scans, kept accounts and history stay in place.
 
 ## 🧭 Quick start
 
-1. **Open the panel**: click the floating **Unfollow Guard** button (drag it wherever it doesn't get in the way).
+1. **Open the panel**: click the floating **Non-followers** button (drag it wherever it doesn't get in the way).
 2. **Scan**: choose how many accounts to check (for example *first 50*), then press **Scan** and confirm.
-3. **Review**: go through **To unfollow**. Press **Keep** on anyone you never want to unfollow, and look at **Mutuals**/**Followers**/**Following** for the full picture.
+3. **Review**: go through **To unfollow** (and check **Changes** to see who unfollowed you since last time). Press **Keep** on anyone you never want to unfollow, and look at **Mutuals**/**Followers**/**Following** for the full picture.
 4. **Select**: tick accounts by hand, or use **Select first** / **Select all** (limited to what's left of today's limit).
 5. **Unfollow**: press **Unfollow N** and confirm. A progress card appears at the top of the page. Press **Stop** whenever you like.
 6. **Come back tomorrow**: the counter resets at local midnight. To check the next batch, set **from #** to where you stopped, unlock **Allow scanning** in ⚙ Settings, and scan again.
@@ -135,7 +137,7 @@ Instagram's web app talks to its own JSON endpoints. The extension reads the sam
 sequenceDiagram
     autonumber
     actor You
-    participant Panel as Unfollow Guard panel
+    participant Panel as Non-Followers panel
     participant IG as Instagram
     You->>Panel: Select accounts (≤ daily limit) and confirm
     loop One account every 20-60 s
@@ -172,10 +174,13 @@ Open them from the **⚙** button in the panel or from the toolbar popup.
 | **Button position** | Bottom right | Corner used when dragging is off, or after a reset. |
 | **Allow dragging** | On | Drag the floating button anywhere; its spot is remembered per site. |
 | **Instagram unfollow method** | Direct API | Direct API with automatic fallback, or Browser clicks only. |
+| **Cool-down after a block** | 6 h | Pause unfollowing for this many hours after a block or rate limit (0 = off). |
+| **Only unfollow during active hours** | Off | A batch waits until the window opens (your local time). |
+| **Active hours** | 09:00 – 22:00 | The allowed window, used when the switch above is on. |
 | **Allow scanning** *(per site)* | On → locks after a scan | Unlock to scan again. |
 | **Daily unfollow cap** *(per site)* | 40 / 20 | 1–100 unfollows per day. Also limits how many accounts you can select. |
 | **Delay between unfollows** | 20–60 s | A random value in this range is used each time. |
-| **Saved scan** *(per site)* | – | Clear the saved lists to start fresh. Kept accounts and history are not affected. |
+| **Saved scan** *(per site)* | – | Shows the saved scan of each account. **Clear** removes the saved lists. Kept accounts, unfollow history and the follower-change log are not affected. |
 
 ## 🛡 Safety & limits
 
@@ -192,7 +197,7 @@ At the default 40 a day, clearing about 3,000 accounts takes around 75 days. Tha
 
 ## 🔒 Privacy & permissions
 
-Everything stays **on your computer**. The extension has no server, no analytics and no accounts, and it never sends your data anywhere except to Instagram/Facebook themselves, as part of the actions you ask for.
+Everything stays **on your computer**, stored separately for each Instagram/Facebook account you use. The extension has no server, no analytics and no accounts, and it never sends your data anywhere except to Instagram/Facebook themselves, as part of the actions you ask for.
 
 | Permission | Why it is needed |
 | --- | --- |
@@ -239,6 +244,18 @@ Click the extension's icon in the browser toolbar and switch **Enabled** on. (Pi
 <summary><b>"Scan locked"</b></summary>
 
 By design: the scan locks after each run to prevent accidental repeats. Open ⚙ Settings, turn on **Allow scanning** for that site, then scan again.
+</details>
+
+<details>
+<summary><b>"Cool-down is active"</b></summary>
+
+The extension saw the site block or rate-limit an action and paused unfollowing (default 6 hours). The chip at the top shows the time left. Waiting is the safest option; you can end the cool-down early from the dialog, or change its length under ⚙ Settings → Safety.
+</details>
+
+<details>
+<summary><b>The Changes tab is empty</b></summary>
+
+The first full scan only saves a baseline. After your next scan, new followers and people who unfollowed you appear there. Scans that fetch your complete followers list are compared; if the list looks incomplete, the comparison is skipped for that scan.
 </details>
 
 <details>
@@ -299,17 +316,22 @@ for f in shared instagram facebook content popup background hook; do node --chec
 ```
 
 Tips:
-- Console messages are prefixed with `[Unfollow Guard]`.
+- Console messages are prefixed with `[Non-Followers]`.
 - All data lives in `chrome.storage.local`. Inspect it from the extension's service-worker console with `chrome.storage.local.get(null, console.log)`.
 - Avoid naming top-level variables in extension pages after window properties (`top`, `name`, `status`…); they can stop a script from running.
 
 ## 🗺 Roadmap
 
+- [x] Separate data for each logged-in account
+- [x] **Changes** tab: who unfollowed you / who followed you
+- [x] Cool-down after a block, and optional active hours
 - [ ] Re-follow button on the **Unfollowed** tab
 - [ ] Export / import the kept list and history (CSV / JSON)
 - [ ] Localized button matching for Browser clicks
 - [ ] Firefox build
 - [ ] Optional "verified accounts" and "recently followed" safety filters
+- [ ] Warm-up mode (raise the daily limit gradually)
+- [ ] **Fans** tab (people who follow you that you don't follow) and simple statistics
 - [ ] Real screenshots and a short demo video
 
 ## 🤝 Contributing
