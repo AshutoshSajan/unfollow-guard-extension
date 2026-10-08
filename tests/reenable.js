@@ -7,7 +7,7 @@ w.chrome = { storage: { local: {
   set: async (o) => { const ch = {}; for (const k in o) { ch[k] = { oldValue: store[k], newValue: o[k] }; store[k] = JSON.parse(JSON.stringify(o[k])); } ls.forEach(f => f(ch)); },
   remove: async () => {} }, onChanged: { addListener: f => ls.push(f) } } };
 w.Element.prototype.scrollIntoView = function () {};
-for (const f of ["shared.js", "instagram.js", "facebook.js", "content.js"]) w.eval(fs.readFileSync(dir + f, "utf8"));
+for (const f of ["shared.js", "i18n.js", "instagram.js", "facebook.js", "content.js"]) w.eval(fs.readFileSync(dir + f, "utf8"));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 (async () => {
   await sleep(300);

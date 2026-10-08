@@ -5,7 +5,7 @@ const { fullStore, initScript, PAGE_HTML, PAGE_HTML_DARK } = require("./demo.js"
 const EXT = require("path").join(__dirname, "..", "..") + "/";
 const OUT = EXT + "docs/screenshots/";
 fs.mkdirSync(OUT, { recursive: true }); fs.mkdirSync(require("os").tmpdir() + "/nfb-frames", { recursive: true });
-const SRC = ["shared.js", "instagram.js", "facebook.js", "content.js"].map((f) => fs.readFileSync(EXT + f, "utf8"));
+const SRC = ["shared.js", "i18n.js", "instagram.js", "facebook.js", "content.js"].map((f) => fs.readFileSync(EXT + f, "utf8"));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const URL_ = "https://www.instagram.com/demo/";
 
@@ -55,10 +55,32 @@ const tab = (page, id) => click(page, `.tab[data-id="${id}"]`).then(() => sleep(
     await page.close();
   }
 
+  // ---- Spanish panel, label dialog, self-check, welcome tour
+  {
+    const es = await newPage(browser, fullStore("light", { lang: "es" }), false);
+    await clickFab(es); await shot(es, "#panel", OUT + "panel-es.png"); await es.close();
+
+    const tag = await newPage(browser, fullStore("light"), false);
+    await clickFab(tag);
+    await tag.evaluate(() => document.getElementById("nfb-host").shadowRoot.querySelector("#list .row .tagbtn").click()); await sleep(350);
+    await tag.screenshot({ path: OUT + "labels.png", clip: { x: 300, y: 150, width: 680, height: 520 } }); await tag.close();
+
+    const dg = await newPage(browser, fullStore("light"), false);
+    await clickFab(dg);
+    await dg.evaluate(() => { const r = document.getElementById("nfb-host").shadowRoot; r.querySelector("details.log").open = true; r.getElementById("diagBtn").click(); });
+    await sleep(900);
+    await dg.screenshot({ path: OUT + "selfcheck.png", clip: { x: 300, y: 150, width: 680, height: 520 } }); await dg.close();
+
+    const tour = await newPage(browser, fullStore("light", { nfb_onboarded: false }), false);
+    await clickFab(tour); await sleep(450);
+    await tour.screenshot({ path: OUT + "tour.png", clip: { x: 300, y: 150, width: 680, height: 520 } }); await tour.close();
+  }
+
   // ---- demo GIF (fresh account: scan -> select -> unfollow)
   const fresh = fullStore("light");
   ["nfb_scan_instagram_777", "nfb_lists_instagram_777", "nfb_keep_instagram_777", "nfb_gone_instagram_777", "nfb_hist_instagram_777", "nfb_flw_instagram_777", "nfb_snap_instagram_777", "nfb_seen_instagram_777", "nfb_sel_instagram_777", "nfb_meta_instagram_777"].forEach((k) => delete fresh[k]);
   fresh.__noDaily = true;
+  fresh.nfb_onboarded = true;
   const page = await newPage(browser, fresh, false, 1);
   let n = 0; const frame = async (label) => { await page.screenshot({ path: `${require("os").tmpdir()}/nfb-frames/f${String(n++).padStart(2, "0")}.png` }); console.log("frame", n - 1, label); };
   await frame("page");

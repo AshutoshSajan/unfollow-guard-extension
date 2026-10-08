@@ -26,7 +26,7 @@ function boot(acct) {
     if (/\/destroy\//.test(url)) return j({ status: "ok", friendship_status: { following: false } });
     return j({});
   };
-  for (const f of ["shared.js", "instagram.js", "facebook.js", "content.js"]) w.eval(fs.readFileSync(dir + f, "utf8"));
+  for (const f of ["shared.js", "i18n.js", "instagram.js", "facebook.js", "content.js"]) w.eval(fs.readFileSync(dir + f, "utf8"));
   return { w, sh: () => w.document.getElementById("nfb-host").shadowRoot, click: el => el.dispatchEvent(new w.MouseEvent("click", { bubbles: true })) };
 }
 const R = {}; const ok = (n, c, x) => (R[n] = c ? "PASS" : "FAIL " + (x || ""));
@@ -80,27 +80,27 @@ const R = {}; const ok = (n, c, x) => (R[n] = c ? "PASS" : "FAIL " + (x || ""));
   a.click($("del")); await sleep(150); a.click(sh.querySelector(".modal .btn.danger")); await sleep(900);
   ok("R0 one unfollowed", (store.nfb_hist_instagram_900 || []).length === 1);
   tab("history"); await sleep(30);
-  const btn = sh.querySelector("#list .btn");
+  const btn = sh.querySelector("#list .btn:not(.tagbtn)");
   ok("R1 Re-follow button shown", btn && btn.textContent === "Re-follow");
   const who = store.nfb_hist_instagram_900[0].pk;
   a.click(btn); await sleep(300);
   ok("R2 follow request sent", net.calls.some(u => /friendships\/create\//.test(u)));
   ok("R3 marked re-followed + kept", store.nfb_hist_instagram_900[0].refollowed === true && !!store.nfb_keep_instagram_900[who]);
   ok("R4 tag replaces button", sh.querySelector("#list .tag.ok") && sh.querySelector("#list .tag.ok").textContent === "Re-followed");
-  tab("keep"); a.click(sh.querySelector("#list .btn")); await sleep(100); tab("todo"); await sleep(30);
+  tab("keep"); a.click(sh.querySelector("#list .btn:not(.tagbtn)")); await sleep(100); tab("todo"); await sleep(30);
   ok("R5 'Move back' returns it to the list", !!sh.querySelector(`.row[data-pk="${who}"]`));
 
   // ---- CSV export + Backup + Import
   tab("todo"); a.click($("expCsv")); await sleep(50);
   const csvBlob = a.w.__downloads.find(b => b.name && b.name.endsWith(".csv"));
   ok("E1 CSV downloaded with header", csvBlob && csvBlob.name === "unfollow-guard-instagram-todo.csv");
-  a.click(sh.querySelector('.row .btn')); await sleep(60); // keep first row
+  a.click(sh.querySelector('.row .btn:not(.tagbtn)')); await sleep(60); // keep first row
   tab("keep"); a.click($("expJson")); await sleep(50);
   const js = a.w.__downloads.find(b => b.name && b.name.endsWith(".json"));
   ok("E2 Backup JSON downloaded", !!js && js.name.includes("kept-backup"));
   const keptNow = Object.keys(store.nfb_keep_instagram_900).length;
   // import usernames (+ one unknown) from text
-  a.click(sh.querySelector("#list .btn")); await sleep(60); // move one back so import has something to add
+  a.click(sh.querySelector("#list .btn:not(.tagbtn)")); await sleep(60); // move one back so import has something to add
   const target = [...sh.querySelectorAll("#list .row")][0];
   tab("todo"); await sleep(30);
   const first = sh.querySelector("#list .row").dataset.pk;

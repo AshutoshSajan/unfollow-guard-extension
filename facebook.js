@@ -155,6 +155,24 @@
     },
     profileUrl: (u) => u.url || `https://www.facebook.com/${u.pk}`,
 
+    async diagnose() {
+      const out = [];
+      const add = (ok, name, detail) => out.push({ ok, name, detail: detail || "" });
+      add(!!getCookie("c_user"), "Logged in (account cookie)", getCookie("c_user") ? "yes" : "not found: are you logged in?");
+      const k = kind();
+      add(k ? true : null, "Followers / Following tab recognised", k || "open your profile's Followers or Following tab");
+      const main = document.querySelector('[role="main"]');
+      add(!!main, "Main page area found", main ? "yes" : "not found: Facebook's layout may have changed");
+      const own = ownKey();
+      const keys = new Set();
+      mainEl().querySelectorAll("a[href]").forEach((a) => { const h = keyFromHref(a.href); if (h && h.key !== own) keys.add(h.key); });
+      add(keys.size > 0 ? true : null, "Profile links found", keys.size + " distinct");
+      let rowsWithButton = 0;
+      mainEl().querySelectorAll("a[href]").forEach((a) => { const h = keyFromHref(a.href); if (h && h.key !== own && rowFor(a, h.key)) rowsWithButton++; });
+      add(rowsWithButton > 0 ? true : null, "List rows with a Follow/Following button", rowsWithButton + " found");
+      return out;
+    },
+
     async scan({ setStatus, prev, opts }) {
       const k = kind();
       if (!k) throw new Error(this.cannotScanMessage());

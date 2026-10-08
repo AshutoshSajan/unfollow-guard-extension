@@ -25,7 +25,7 @@ function page(lang, words, { confirmStep = false, followingLabel } = {}) {
       } else { dlg.remove(); rel.firstChild.textContent = words.follow; }
     });
   });
-  for (const f of ["shared.js", "instagram.js"]) w.eval(fs.readFileSync(dir + f, "utf8"));
+  for (const f of ["shared.js", "i18n.js", "instagram.js"]) w.eval(fs.readFileSync(dir + f, "utf8"));
   return { w, A: w.NFB.adapters.instagram };
 }
 const langs = {

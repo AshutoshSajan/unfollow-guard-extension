@@ -250,12 +250,15 @@
     full_name: u.full_name || "",
     pic: u.profile_pic_url || "",
     verified: !!u.is_verified,
+    private: u.is_private === undefined ? undefined : !!u.is_private,
+    noPic: u.has_anonymous_profile_picture === undefined ? undefined : !!u.has_anonymous_profile_picture,
   });
 
   NFB.adapters.instagram = {
     id: "instagram",
     label: "Instagram",
     supportsStart: true,
+    canSchedule: true,                        // the daily schedule can run here
     followerDiff: true,                       // follower lists are complete, so changes between scans can be logged
     accountId: () => getCookie("ds_user_id") || "default",
     match: () => location.hostname.endsWith("instagram.com"),
@@ -328,6 +331,39 @@
     // "api" sends the same request the site does; "ui" opens the profile and clicks Following → Unfollow.
     navigateTo: (u, s) => (s && s.igMethod === "ui" ? `https://www.instagram.com/${u.username}/` : null),
     unfollow: (u, s) => (s && s.igMethod === "ui" ? unfollowViaUI(u, s) : unfollowViaApi(u)),
-    follow: (u) => friendshipApi("create", u),   // used by "Re-follow" on the Unfollowed tab
+    follow: (u) => friendshipApi("create", u),
+
+    // Self-check: reports what the extension can currently see on this page (shown in the panel's log area).
+    async diagnose(s) {
+      const out = [];
+      const add = (ok, name, detail) => out.push({ ok, name, detail: detail || "" });
+      const uid = getCookie("ds_user_id");
+      add(!!uid, "Logged in (account cookie)", uid ? "yes" : "not found: are you logged in?");
+      add(!!getCookie("csrftoken"), "CSRF cookie", getCookie("csrftoken") ? "present" : "missing");
+      const dtsg = getDtsg();
+      add(!!dtsg, "Page token (fb_dtsg)", dtsg ? (captured().fb_dtsg ? "found, from the site's own requests" : "found in the page") : "not found: reload the page");
+      const c = captured();
+      const got = ["x-ig-www-claim", "x-instagram-ajax", "x-asbd-id", "x-web-session-id"].filter((k) => c[k]);
+      add(got.length >= 2 ? true : got.length ? null : false, "Headers copied from the site", got.length ? got.join(", ") : "none yet: scroll or open a profile, then run again");
+      if (uid) {
+        try {
+          const r = await fetch(`/api/v1/users/${uid}/info/`, { headers: hdrs(), credentials: "include" });
+          add(r.ok, "Instagram API reachable", "HTTP " + r.status);
+        } catch (e) { add(false, "Instagram API reachable", e.message); }
+      }
+      const segs = location.pathname.split("/").filter(Boolean);
+      const onProfile = segs.length === 1 && !["explore", "reels", "direct", "accounts", "p", "stories", "reel"].includes(segs[0]);
+      if (onProfile) {
+        const hs = [...document.querySelectorAll("header")];
+        add(hs.length > 0, "Profile header found", hs.length + " found");
+        if (hs.length) {
+          const labels = [...hs[0].querySelectorAll('button, [role="button"]')].map(labelOf).filter(Boolean);
+          const L = labelSet(s);
+          const hit = labels.find((l) => L.rel.test(l));
+          add(hit ? true : null, "Follow / Following button recognised", hit ? `“${hit}”` : "buttons seen: " + (labels.slice(0, 6).join(" | ") || "none"));
+        }
+      } else add(null, "Button detection (Browser clicks)", "open someone's profile page and run the self-check again");
+      return out;
+    },   // used by "Re-follow" on the Unfollowed tab
   };
 })();

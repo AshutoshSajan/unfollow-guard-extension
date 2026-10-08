@@ -17,7 +17,7 @@ let pk = 41000000;
 function person(verified = false) {
   let u; do { const sep = pick([".", "_", ""]); u = pick(A) + sep + pick(B) + (rnd() < 0.25 ? Math.floor(rnd() * 90) : ""); } while (used.has(u));
   used.add(u);
-  return { pk: String(pk += 1 + Math.floor(rnd() * 900)), username: u, full_name: pick(FIRST) + " " + pick(LAST), pic: avatar(u[0].toUpperCase(), pick(COLORS)), verified };
+  return { pk: String(pk += 1 + Math.floor(rnd() * 900)), username: u, full_name: pick(FIRST) + " " + pick(LAST), pic: avatar(u[0].toUpperCase(), pick(COLORS)), verified, private: rnd() < 0.22, noPic: rnd() < 0.06 };
 }
 const ME = { followers: 97, following: 3335, mutual: 66 };
 const mutual = Array.from({ length: ME.mutual }, () => person());
@@ -33,7 +33,7 @@ const histUsers = nonFollowers.slice(60, 72);
 const lostUsers = [fans[0], fans[1], mutual[3]].map((u) => ({ ...u }));
 const newUsers = [fans[2], fans[3], fans[4], fans[5]].map((u) => ({ ...u }));
 const ACCT = "777";
-const slim = (u) => ({ pk: u.pk, username: u.username, full_name: u.full_name, pic: u.pic, verified: !!u.verified });
+const slim = (u) => ({ pk: u.pk, username: u.username, full_name: u.full_name, pic: u.pic, verified: !!u.verified, private: u.private, noPic: u.noPic });
 const gone = new Set(histUsers.map((u) => u.pk));
 const users = nonFollowers.filter((u) => !gone.has(u.pk) && !keptUsers.includes(u)).map(slim);
 
@@ -50,6 +50,8 @@ function fullStore(theme, extra = {}) {
     ["nfb_seen_instagram_" + ACCT]: { complete: true, m: {} },
     ["nfb_sel_instagram_" + ACCT]: users.slice(0, 3).map((u) => u.pk),
     nfb_accounts: { instagram: [ACCT] },
+    nfb_onboarded: true,
+    ["nfb_tags_instagram_" + ACCT]: { [users[2].pk]: { tag: "friend", note: "college friend" }, [users[6].pk]: { tag: "client", note: "" } },
     ["nfb_meta_instagram_" + ACCT]: { at: now - 5 * 3600e3, text: `Scanned today · following ${ME.following}, followers ${ME.followers} · ${nonFollowers.length} non-followers`, username: "demo.account" },
     ...extra,
   };
@@ -58,11 +60,11 @@ function fullStore(theme, extra = {}) {
 const toApi = (u) => ({ pk: u.pk, username: u.username, full_name: u.full_name, profile_pic_url: u.pic, is_verified: !!u.verified });
 const demoLists = { following: following.map(toApi), followers: followers.map(toApi) };
 
-const PAGE_HTML = `<!doctype html><html lang="en" data-nfb='{"fb_dtsg":"NAcDEMO"}'><head><meta charset="utf-8"><title>Demo page</title>
+const PAGE_HTML = `<!doctype html><html lang="en" data-nfb='{"fb_dtsg":"NAcDEMO","x-ig-www-claim":"hmac.demo","x-instagram-ajax":"1000000","x-asbd-id":"1"}'><head><meta charset="utf-8"><title>Demo page</title>
 <style>body{margin:0;font-family:system-ui,sans-serif;background:linear-gradient(135deg,#eef2f7,#e3e8f0);color:#1f2933}
 .wrap{max-width:560px;margin:40px auto;padding:0 16px}.card{background:#fff;border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .bar{height:12px;border-radius:6px;background:#e5e9ef;margin:10px 0}.bar.s{width:60%}.bar.m{width:80%}.img{height:200px;border-radius:12px;background:linear-gradient(135deg,#cbd5e1,#e2e8f0)}</style></head>
-<body><div class="wrap"><div class="card"><div class="bar m"></div><div class="bar s"></div><div class="img"></div></div><div class="card"><div class="bar m"></div><div class="bar"></div><div class="img"></div></div></div></body></html>`;
+<body><div class="wrap"><div class="card"><header style="display:flex;gap:8px;margin-bottom:10px"><button style="padding:6px 14px;border-radius:8px;border:1px solid #cbd5e1;background:#fff">Following</button><button style="padding:6px 14px;border-radius:8px;border:1px solid #cbd5e1;background:#fff">Message</button></header><div class="bar m"></div><div class="bar s"></div><div class="img"></div></div><div class="card"><div class="bar m"></div><div class="bar"></div><div class="img"></div></div></div></body></html>`;
 const PAGE_HTML_DARK = PAGE_HTML.replace("linear-gradient(135deg,#eef2f7,#e3e8f0)", "linear-gradient(135deg,#0f1115,#171a20)").replace("color:#1f2933", "color:#e5e7eb").replace(/background:#fff/g, "background:#1c1f26").replace(/#e5e9ef/g, "#2a2f39");
 
 // runs inside the page before the extension scripts: fake chrome.storage + fake Instagram API

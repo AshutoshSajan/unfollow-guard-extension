@@ -8,7 +8,8 @@
   const K = (n) => `nfb_${n}_${A.id}_${ACCT}`;
   const scanKey = K("scan"), listsKey = K("lists"), keepKey = K("keep"), selKey = K("sel"),
         goneKey = K("gone"), histKey = K("hist"), runKey = K("run"), stopKey = K("stop"),
-        snapKey = K("snap"), flwKey = K("flw"), coolKey = K("cool"), metaKey = K("meta"), seenKey = K("seen");
+        snapKey = K("snap"), flwKey = K("flw"), coolKey = K("cool"), metaKey = K("meta"), seenKey = K("seen"),
+        tagsKey = K("tags"), schedKey = K("sched");
   const allowKey = "allowScan_" + A.id;
   const IS_BETA = !!(NFB.PLATFORMS.find((p) => p.id === A.id) || {}).beta;
 
@@ -51,7 +52,7 @@
     .setview { display: none; flex: 1; overflow-y: auto; padding: 14px; background: var(--bg2); color: var(--fg); }
 
     .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px 14px 0; }
-    .stat { background: var(--bg2); border-radius: 12px; padding: 8px 10px; }
+    .stat { background: var(--bg2); border-radius: 12px; padding: 6px 10px; }
     .stat b { display: block; font-size: 16px; font-weight: 700; color: var(--fg); }
     .stat span { font-size: 11px; color: var(--fg2); }
     .chips { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 14px 0; }
@@ -61,7 +62,7 @@
     .chip.info { background: var(--accent-soft); color: var(--accent); }
     .notice { margin: 10px 14px 0; padding: 9px 12px; border-radius: 12px; background: var(--bg2); font-size: 12.5px; line-height: 1.45; color: var(--fg); }
     .notice:empty { display: none; }
-    .scan { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 14px; }
+    .scan { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 8px 14px; }
     .scan .lbl { font-size: 12.5px; color: var(--fg2); }
     .scan .num { width: 62px; text-align: center; }
 
@@ -74,7 +75,7 @@
     .tab .n { font-weight: 500; opacity: .75; margin-left: 4px; font-size: 12px; }
     .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 14px 6px; }
     .toolbar .search { flex: 1; min-width: 150px; }
-    .sel2 { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 0 14px 6px; }
+    .sel2 { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; padding: 0 14px 6px; }
     .sel2 .num { width: 56px; text-align: center; }
     .note { margin: 0 14px 6px; font-size: 12px; color: var(--fg2); }
     .note:empty { display: none; }
@@ -140,102 +141,152 @@
     .rc-bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .4s; }
     .toasts { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
     .toast { background: #1f2933; color: #fff; font-size: 13px; padding: 9px 14px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.35); max-width: 380px; }
+    .field.sm { height: 30px; font-size: 12.5px; padding: 0 8px; }
+    textarea.field { height: auto; padding: 8px 10px; font-family: inherit; }
+    .filters { display: flex; gap: 8px; padding: 0 14px 6px; flex-wrap: wrap; }
+    .logtools { display: flex; gap: 8px; padding: 0 14px 8px; }
+    .toast .tbtn { margin-left: 12px; background: transparent; border: 0; color: #7cc4ff; font-weight: 700; cursor: pointer; font-size: 13px; }
+    .tagbtn { width: 28px; padding: 0; font-size: 13px; flex: none; }
+    .row .fn { max-width: 100%; }
   </style>
   <div class="app" id="app" data-theme="system">
-    <button class="fab" id="fab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="10" cy="8" r="4"/><path d="M2 21a8 8 0 0 1 16 0"/><path d="M16 12h6"/></svg><span>Unfollow Guard</span></button>
+    <button class="fab" id="fab" aria-label="Unfollow Guard"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M2 21a8 8 0 0 1 16 0"/><path d="M16 12h6"/></svg><span>Unfollow Guard</span></button>
 
-    <div class="panel" id="panel">
+    <div class="panel" id="panel" role="region" aria-label="Unfollow Guard">
       <div class="head">
         <div class="brand">${LOGO}<div><div class="title">Unfollow Guard</div>
           <div class="sub">${A.label}${IS_BETA ? ' <span class="badge" title="Facebook support is not fully tested yet">BETA</span>' : ""}<span id="acct"></span></div></div></div>
         <div class="hbtns">
-          <button class="iconbtn" id="themeBtn" title="Change theme">◐</button>
-          <button class="iconbtn" id="gear" title="Settings">⚙</button>
-          <button class="iconbtn" id="closeBtn" title="Close">✕</button>
+          <button class="iconbtn" id="helpBtn" data-ti="tt_help">?</button>
+          <button class="iconbtn" id="themeBtn">◐</button>
+          <button class="iconbtn" id="gear" data-ti="tt_settings">⚙</button>
+          <button class="iconbtn" id="closeBtn" data-ti="tt_close">✕</button>
         </div>
       </div>
 
       <div class="main" id="main">
         <div class="stats">
-          <div class="stat"><b id="stFollowing">–</b><span>Following</span></div>
-          <div class="stat"><b id="stFollowers">–</b><span>Followers</span></div>
-          <div class="stat"><b id="stMutual">–</b><span>Mutual</span></div>
-          <div class="stat"><b id="stTodo">–</b><span>To unfollow</span></div>
+          <div class="stat"><b id="stFollowing">–</b><span data-i="st_following"></span></div>
+          <div class="stat"><b id="stFollowers">–</b><span data-i="st_followers"></span></div>
+          <div class="stat"><b id="stMutual">–</b><span data-i="st_mutual"></span></div>
+          <div class="stat"><b id="stTodo">–</b><span data-i="st_todo"></span></div>
         </div>
         <div class="chips"><span class="chip" id="chipTime"></span><span class="chip" id="chipCap"></span></div>
-        <div class="notice" id="status"></div>
+        <div class="notice" id="status" role="status" aria-live="polite"></div>
         <div class="scan">
-          <span class="lbl">Check</span>
           <select class="field" id="lim">
-            <option value="50">first 50</option><option value="100">first 100</option>
-            <option value="250">first 250</option><option value="500">first 500</option><option value="0">all</option>
+            <option value="50" data-i="opt_first" data-n="50"></option><option value="100" data-i="opt_first" data-n="100"></option>
+            <option value="250" data-i="opt_first" data-n="250"></option><option value="500" data-i="opt_first" data-n="500"></option>
+            <option value="0" data-i="opt_all"></option>
           </select>
-          <span class="lbl" id="startwrap">from # <input class="field num" id="start" type="number" min="1" value="1"></span>
-          <button class="btn primary" id="scan" style="margin-left:auto">Scan</button>
+          <span class="lbl" id="startwrap"><span data-i="lbl_from"></span> <input class="field num" id="start" type="number" min="1" value="1"></span>
+          <button class="btn primary" id="scan" style="margin-left:auto"></button>
         </div>
-        <div class="tabs" id="tabs"></div>
+        <div class="tabs" id="tabs" role="tablist"></div>
         <div class="toolbar" id="toolbar">
-          <input class="field search" id="q" type="search" placeholder="Search name or username">
-          <button class="btn sm" id="expCsv" title="Download this list as a CSV file">CSV</button>
-          <button class="btn sm" id="expJson" style="display:none" title="Back up your kept list as a JSON file">Backup</button>
-          <button class="btn sm" id="impKept" style="display:none" title="Import a kept list: a Backup file, or a CSV/TXT with one username per line">Import</button>
-          <input type="file" id="fileIn" accept=".json,.csv,.txt,text/plain,text/csv,application/json" style="display:none">
+          <input class="field search" id="q" type="search" data-ph="ph_search">
+          <button class="btn sm" id="expCsv" data-i="btn_csv" data-ti="tip_csv"></button>
+          <button class="btn sm" id="expJson" style="display:none" data-i="btn_backup" data-ti="tip_backup"></button>
+          <button class="btn sm" id="impKept" style="display:none" data-i="btn_import" data-ti="tip_import"></button>
+          <input type="file" id="fileIn" accept=".json,.csv,.txt,text/plain,text/csv,application/json" style="display:none" tabindex="-1">
+        </div>
+        <div class="filters" id="filters">
+          <select class="field sm" id="fltr">
+            <option value="all" data-i="flt_all"></option><option value="private" data-i="flt_private"></option><option value="public" data-i="flt_public"></option>
+            <option value="nopic" data-i="flt_nopic"></option><option value="verified" data-i="flt_verified"></option>
+            <option value="tagged" data-i="flt_tagged"></option><option value="untagged" data-i="flt_untagged"></option>
+          </select>
+          <select class="field sm" id="srt">
+            <option value="default" data-i="srt_default"></option><option value="az" data-i="srt_az"></option>
+            <option value="za" data-i="srt_za"></option><option value="name" data-i="srt_name"></option>
+          </select>
         </div>
         <div class="sel2" id="sel2">
-          <button class="btn sm" id="selN">Select first</button>
-          <input class="field num" id="n" type="number" min="1" value="30">
-          <button class="btn sm" id="all">Select all</button>
-          <button class="btn sm" id="clr">Clear</button>
+          <button class="btn sm" id="selN" data-i="btn_selfirst"></button>
+          <input class="field num" id="n" type="number" min="1" value="30" aria-label="30">
+          <button class="btn sm" id="all" data-i="btn_selall"></button>
+          <button class="btn sm" id="clr" data-i="btn_clear"></button>
         </div>
         <div class="note" id="listNote"></div>
         <div class="list" id="list"></div>
         <div class="footer" id="footer">
           <div class="count"><div id="selLabel"></div><span id="selSub"></span></div>
           <div class="acts">
-            <button class="btn" id="keepSel">Keep</button>
-            <button class="btn danger" id="del">Unfollow</button>
+            <button class="btn" id="keepSel" data-i="btn_keep"></button>
+            <button class="btn danger" id="del"></button>
           </div>
         </div>
-        <details class="log"><summary>Activity log</summary><div class="logbox" id="log"></div></details>
+        <details class="log"><summary data-i="log_title"></summary>
+          <div class="logtools"><button class="btn sm" id="diagBtn" data-i="btn_selfcheck"></button><button class="btn sm" id="dbgBtn" data-i="btn_copydebug"></button></div>
+          <div class="logbox" id="log"></div></details>
       </div>
       <div class="setview" id="setview">${NFB.settingsHTML}</div>
     </div>
 
-    <div class="runcard" id="runcard">
+    <div class="runcard" id="runcard" role="status" aria-live="polite">
       <div class="rc-top">
         <div class="rc-av"><span id="rcAv"></span><span class="rc-badge spin" id="rcBadge"></span></div>
         <div class="rc-txt"><div class="rc-title" id="rcTitle"></div><div class="rc-sub" id="rcSub"></div></div>
-        <button class="btn danger sm" id="runstop">Stop</button>
+        <button class="btn danger sm" id="runstop"></button>
       </div>
-      <div class="rc-bar"><i id="rcFill"></i></div>
+      <div class="rc-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="rcBar"><i id="rcFill"></i></div>
     </div>
-    <div class="toasts" id="toasts"></div>
+    <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
     <div id="modalhost"></div>
   </div>`;
   document.body.append(host);
 
   const $ = (id) => shadow.getElementById(id);
+  const tr = (k, v) => NFB.t(k, v);
   NFB.watchTheme($("app"));
   const panel = $("panel"), listEl = $("list"), modalHost = $("modalhost");
   const scanBtn = $("scan"), delBtn = $("del"), keepBtn = $("keepSel"), stopBtn = $("runstop");
   const ask = (o) => NFB.dialog(modalHost, o);
   const fmtN = (v) => (typeof v === "number" ? v.toLocaleString() : "–");
 
-  const setStatus = (t) => ($("status").textContent = t || "");
-  const toast = (t) => {
+  // Fills every element marked data-i (text), data-ph (placeholder) and data-ti (tooltip + accessible name).
+  function applyLang() {
+    shadow.querySelectorAll("[data-i]").forEach((el) => { el.textContent = tr(el.dataset.i, el.dataset.n ? { n: Number(el.dataset.n).toLocaleString() } : undefined); });
+    shadow.querySelectorAll("[data-ph]").forEach((el) => { el.placeholder = tr(el.dataset.ph); el.setAttribute("aria-label", el.placeholder); });
+    shadow.querySelectorAll("[data-ti]").forEach((el) => {
+      const s = tr(el.dataset.ti);
+      el.title = s;
+      if (!el.textContent.trim() || el.textContent.trim() === "?" || el.classList.contains("iconbtn")) el.setAttribute("aria-label", s);
+    });
+    stopBtn.textContent = tr(stopBtn.dataset.state === "stopping" ? "btn_stopping" : schedPending ? "btn_cancel" : "btn_stop");
+  }
+
+  const setStatus = (text) => ($("status").textContent = text || "");
+  // toast with an optional action button (e.g. Undo)
+  const toast = (msg, action) => {
     const d = document.createElement("div");
     d.className = "toast";
-    d.textContent = t;
+    d.textContent = msg;
+    if (action) {
+      d.style.pointerEvents = "auto";
+      const b = document.createElement("button");
+      b.className = "tbtn";
+      b.textContent = action.label;
+      b.onclick = () => { d.remove(); action.fn(); };
+      d.append(b);
+    }
     $("toasts").append(d);
-    setTimeout(() => d.remove(), 3200);
+    setTimeout(() => d.remove(), action ? 7000 : 3200);
   };
+  // Activity log. `name` is kept separately so a shared debug report can hide usernames.
+  const logEntries = [];
   const logBox = $("log");
-  const log = (t) => {
+  const log = (text, name) => {
+    logEntries.push({ at: Date.now(), text, name: name || "" });
+    if (logEntries.length > 200) logEntries.shift();
     const d = document.createElement("div");
-    d.textContent = new Date().toLocaleTimeString() + "  " + t;
+    d.textContent = new Date().toLocaleTimeString() + "  " + text;
     logBox.prepend(d);
     while (logBox.childElementCount > 80) logBox.lastChild.remove();
-    console.log("[Unfollow Guard]", t);
+    console.log("[Unfollow Guard]", text);
+  };
+  const notify = (title, message) => {
+    try { if (chrome.runtime && chrome.runtime.sendMessage) chrome.runtime.sendMessage({ type: "notify", title, message }, () => void chrome.runtime.lastError); } catch {}
   };
 
   const placeholder = (u) => {
@@ -255,26 +306,33 @@
     return img;
   };
 
-  // ---------- header buttons: settings / theme / close ----------
+  // ---------- header buttons: settings / theme / close / help ----------
   let inSettings = false;
+  function refreshGear() {
+    const s = tr(inSettings ? "tt_back" : "tt_settings");
+    $("gear").textContent = inSettings ? "←" : "⚙";
+    $("gear").title = s;
+    $("gear").setAttribute("aria-label", s);
+  }
   $("gear").onclick = () => {
     inSettings = !inSettings;
     $("main").style.display = inSettings ? "none" : "flex";
     $("setview").style.display = inSettings ? "block" : "none";
-    $("gear").textContent = inSettings ? "←" : "⚙";
-    $("gear").title = inSettings ? "Back" : "Settings";
+    refreshGear();
   };
   const THEMES = ["system", "light", "dark"];
   const THEME_ICON = { system: "◐", light: "☀", dark: "☾" };
   let theme = "system";
-  const showTheme = (t) => {
-    theme = THEMES.includes(t) ? t : "system";
+  const showTheme = (v) => {
+    theme = THEMES.includes(v) ? v : "system";
+    const s = tr("tt_theme", { x: theme[0].toUpperCase() + theme.slice(1) });
     $("themeBtn").textContent = THEME_ICON[theme];
-    $("themeBtn").title = "Theme: " + theme[0].toUpperCase() + theme.slice(1) + " (click to change)";
+    $("themeBtn").title = s;
+    $("themeBtn").setAttribute("aria-label", s);
   };
   $("themeBtn").onclick = () => chrome.storage.local.set({ theme: THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length] });
-  NFB.getSettings().then((s) => showTheme(s.theme));
   $("closeBtn").onclick = () => (panel.style.display = "none");
+  $("helpBtn").onclick = () => showTour();
 
   // ---------- button placement + dragging ----------
   const fab = $("fab");
@@ -296,7 +354,7 @@
     const pw = Math.min(440, W - 2 * M);
     const above = f.y + f.h / 2 > H / 2;
     const space = above ? f.y - 8 - M : H - (f.y + f.h) - 8 - M;
-    const ph = Math.max(Math.min(340, H - 2 * M), Math.min(H * 0.88, space));
+    const ph = Math.max(Math.min(340, H - 2 * M), Math.min(H * 0.92, space));
     const rightAlign = f.x + f.w / 2 > W / 2;
     const x = clamp(rightAlign ? f.x + f.w - pw : f.x, M, Math.max(M, W - pw - M));
     const y = clamp(above ? f.y - 8 - ph : f.y + f.h + 8, M, Math.max(M, H - ph - M));
@@ -324,7 +382,7 @@
   const togglePanel = () => {
     panel.style.display = panel.style.display === "flex" ? "none" : "flex";
     place();
-    if (panel.style.display === "flex") fillView();
+    if (panel.style.display === "flex") { fillView(); maybeTour(); }
   };
   let drag = null;
   fab.addEventListener("pointerdown", (e) => {
@@ -354,9 +412,10 @@
   });
   fab.addEventListener("pointercancel", () => { drag = null; place(); });
 
+
   // ---------- state ----------
-  // Big data (scan, lists) is read once and cached; small data (keep, gone, history, selection) is saved separately,
-  // so ticking, keeping and unfollowing never rewrite the big lists.
+  // Big data (scan, lists) is read once and cached; small data (keep, gone, history, selection, tags) is saved
+  // separately, so ticking, keeping and unfollowing never rewrite the big lists.
   let scanCache = null;       // last saved scan (users = non-followers)
   let lists = null;           // {followers, following, followingComplete}
   let users = [];             // non-followers still to decide on
@@ -366,24 +425,30 @@
   let selected = new Set();
   let followerSet = new Set(), followingSet = new Set(), histSet = new Set(), mutual = [], fans = [];
   let seen = { complete: false, m: {} }; // when the extension first saw each account you follow (0 = already followed before)
-  let tab = "todo", query = "";
+  let tab = "todo", query = "", fltr = "all", srt = "default";
   let capInfo = { cap: 40, used: 0 };
   let scanning = false, unfollowing = false, stop = false, enabled = true;
   let runNextAt = 0;
   let flw = [];               // follower changes between scans [{pk, username, full_name, pic, type: "lost"|"new", at}]
   let coolUntil = 0;          // cool-down after a block (timestamp)
-  let safety = NFB.DEFAULTS;  // cool-down + active-hours settings
+  let safety = NFB.DEFAULTS;  // cool-down, protection, schedule... settings
+  let tags = {};              // pk -> {tag, note}
+  let onboarded = true;
+  let schedPending = null;    // {cancel} while a scheduled batch counts down
   NFB.shouldStop = () => stop;
 
+  const TAG_IDS = ["friend", "family", "client", "work", "other"];
+  const tagLabel = (id) => tr("tag_" + id);
   const maxSel = () => Math.max(0, capInfo.cap - capInfo.used);
   const capMsg = () =>
-    `Daily limit: ${capInfo.cap}${capInfo.warm ? " (warm-up; your cap is " + capInfo.base + ")" : ""}. You've already unfollowed ${capInfo.used} today, so you can select at most ${maxSel()} more. Change the limit in ⚙ Settings.`;
+    tr("ts_cap", { cap: capInfo.cap, warm: capInfo.warm ? tr("ts_cap_warm", { base: capInfo.base }) : "", used: capInfo.used, max: maxSel() });
   const esc = (v) => (window.CSS && CSS.escape ? CSS.escape(v) : String(v).replace(/"/g, '\\"'));
 
   let selT;
   const saveSel = () => { clearTimeout(selT); selT = setTimeout(() => chrome.storage.local.set({ [selKey]: [...selected] }), 150); };
   const saveKeep = () => chrome.storage.local.set({ [keepKey]: keep });
   const saveHist = () => chrome.storage.local.set({ [histKey]: hist });
+  const saveTags = () => chrome.storage.local.set({ [tagsKey]: tags });
 
   function derive() {
     const fol = (lists && lists.followers) || null;
@@ -397,41 +462,58 @@
 
   // ---------- tabs + list (renders in chunks: big lists stay fast) ----------
   const TABS = [
-    { id: "todo", label: "To unfollow", count: () => users.length, items: () => users },
-    { id: "keep", label: "Kept", count: () => Object.keys(keep).length, items: () => Object.values(keep) },
-    { id: "mutual", label: "Mutuals", count: () => mutual.length, items: () => mutual },
-    { id: "fans", label: "Fans", count: () => fans.length, items: () => fans },
-    { id: "followers", label: "Followers", count: () => (lists && lists.followers ? lists.followers.length : 0), items: () => (lists && lists.followers) || [] },
-    { id: "following", label: "Following", count: () => (lists && lists.following ? lists.following.length : 0), items: () => (lists && lists.following) || [] },
-    { id: "history", label: "Unfollowed", count: () => hist.length, items: () => hist.slice().reverse() },
+    { id: "todo", count: () => users.length, items: () => users },
+    { id: "keep", count: () => Object.keys(keep).length, items: () => Object.values(keep) },
+    { id: "mutual", count: () => mutual.length, items: () => mutual },
+    { id: "fans", count: () => fans.length, items: () => fans },
+    { id: "followers", count: () => (lists && lists.followers ? lists.followers.length : 0), items: () => (lists && lists.followers) || [] },
+    { id: "following", count: () => (lists && lists.following ? lists.following.length : 0), items: () => (lists && lists.following) || [] },
+    { id: "history", count: () => hist.length, items: () => hist.slice().reverse() },
   ];
-  if (A.followerDiff) TABS.push({ id: "changes", label: "Changes", count: () => flw.length, items: () => flw.slice().reverse() });
-  TABS.push({ id: "stats", label: "Stats", count: () => "", items: () => [] });
+  if (A.followerDiff) TABS.push({ id: "changes", count: () => flw.length, items: () => flw.slice().reverse() });
+  TABS.push({ id: "stats", count: () => "", items: () => [] });
+  const FILTER_TABS = new Set(["todo", "keep", "mutual", "fans", "followers", "following"]);
+  const tabLabel = (id) => tr("tab_" + id);
+
   const tabsEl = $("tabs");
   TABS.forEach((t) => {
     const b = document.createElement("button");
     b.className = "tab";
     b.dataset.id = t.id;
-    b.innerHTML = `${t.label}<span class="n">0</span>`;
+    b.setAttribute("role", "tab");
+    b.innerHTML = '<span class="tl"></span><span class="n">0</span>';
+    b.querySelector(".tl").textContent = tabLabel(t.id);
     b.onclick = () => showTab(t.id);
     tabsEl.append(b);
   });
+  tabsEl.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const ids = TABS.map((x) => x.id);
+    const j = (ids.indexOf(tab) + (e.key === "ArrowRight" ? 1 : ids.length - 1)) % ids.length;
+    showTab(ids[j]);
+    tabsEl.querySelector(`[data-id="${ids[j]}"]`).focus();
+    e.preventDefault();
+  });
 
-  const EMPTY = {
-    todo: "No accounts to unfollow yet. Click Scan to find who doesn't follow you back.",
-    keep: "Nothing kept yet. Use Keep on an account you never want to unfollow. Kept accounts stay out of future scans.",
-    mutual: () => (lists && lists.followers ? "No mutual follows found." : "Mutuals need your full followers list. Run a scan (with a small follower count, or Check → all)."),
-    followers: () => (lists && lists.followers === null ? "Followers weren't fetched in the last scan (you have many followers)." : "No followers saved yet. Run a scan."),
-    following: "No following list saved yet. Run a scan.",
-    history: "You haven't unfollowed anyone with this extension yet.",
-    changes: "No follower changes yet. After your next full scan, new followers and people who unfollowed you will appear here.",
-    fans: () => (lists && lists.followers ? "No fans: you follow everyone who follows you (among the accounts fetched)." : "Fans need your followers list. Run a scan first."),
+  const emptyText = () => {
+    if (query || (FILTER_TABS.has(tab) && fltr !== "all")) return tr("empty_nomatch");
+    const withF = !!(lists && lists.followers);
+    switch (tab) {
+      case "todo": return tr("empty_todo");
+      case "keep": return tr("empty_keep");
+      case "mutual": return tr(withF ? "empty_mutual_a" : "empty_mutual_b");
+      case "fans": return tr(withF ? "empty_fans_a" : "empty_fans_b");
+      case "followers": return tr(lists && lists.followers === null ? "empty_followers_a" : "empty_followers_b");
+      case "following": return tr("empty_following");
+      case "history": return tr("empty_history");
+      case "changes": return tr("empty_changes");
+      default: return "";
+    }
   };
   const emptyEl = () => {
     const d = document.createElement("div");
     d.className = "empty";
-    const e = EMPTY[tab];
-    d.textContent = query ? "No matches." : typeof e === "function" ? e() : e;
+    d.textContent = emptyText();
     return d;
   };
 
@@ -441,6 +523,23 @@
 
   const matches = (u) => !query || ((u.username || "") + " " + (u.full_name || "")).toLowerCase().includes(query);
   const tabItems = () => TABS.find((t) => t.id === tab).items();
+  const tagOf = (u) => (tags[u.pk] && tags[u.pk].tag) || "";
+  const passFilter = (u) => {
+    switch (fltr) {
+      case "private": return u.private === true;
+      case "public": return u.private === false;
+      case "nopic": return u.noPic === true;
+      case "verified": return !!u.verified;
+      case "tagged": return !!tagOf(u);
+      case "untagged": return !tagOf(u);
+      default: return true;
+    }
+  };
+  const SORTERS = {
+    az: (a, b) => (a.username || "").localeCompare(b.username || ""),
+    za: (a, b) => (b.username || "").localeCompare(a.username || ""),
+    name: (a, b) => (a.full_name || "").localeCompare(b.full_name || ""),
+  };
 
   const tagEl = (text, kind) => {
     const s = document.createElement("span");
@@ -480,50 +579,59 @@
     a.onclick = (e) => e.stopPropagation();
     const fn = document.createElement("div");
     fn.className = "fn";
-    fn.textContent = tab === "history" ? `Unfollowed ${NFB.fmtWhen(u.at)}`
-      : tab === "changes" ? `${u.type === "lost" ? "Unfollowed you" : "Started following you"} · ${NFB.fmtWhen(u.at)}`
+    const note = tags[u.pk] && tags[u.pk].note;
+    const base = tab === "history" ? tr("sub_unfollowed", { when: NFB.fmtWhen(u.at) })
+      : tab === "changes" ? tr(u.type === "lost" ? "sub_lost" : "sub_new", { when: NFB.fmtWhen(u.at) })
       : u.full_name || "";
+    fn.textContent = note ? (base ? base + " · " : "") + "📝 " + note : base;
+    if (note) row.title = note;
     who.append(a, fn);
     row.append(avatarEl(u), who);
 
+    const addTagUi = () => {
+      const t = tagOf(u);
+      if (t) row.append(tagEl(tagLabel(t), "info"));
+      const tb = document.createElement("button");
+      tb.className = "btn sm tagbtn";
+      tb.textContent = "🏷";
+      tb.title = tr("tip_tag");
+      tb.setAttribute("aria-label", tr("tip_tag") + " @" + u.username);
+      tb.onclick = (e) => { e.preventDefault(); e.stopPropagation(); editTag(u); };
+      row.append(tb);
+    };
+    const actionBtn = (label, tip, fn2) => {
+      const b = document.createElement("button");
+      b.className = "btn sm";
+      b.textContent = label;
+      b.title = tip;
+      b.setAttribute("aria-label", label + " @" + u.username);
+      b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); fn2(b); };
+      row.append(b);
+    };
+
     if (tab === "todo") {
       const why = protectReason(u);
-      if (why) row.append(tagEl(why, "info"));
-      const b = document.createElement("button");
-      b.className = "btn sm";
-      b.textContent = "Keep";
-      b.title = "Never unfollow this account (hides it from future scans)";
-      b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); keepUsers([u.pk]); };
-      row.append(b);
+      if (why && !(tagOf(u) && why === tagLabel(tagOf(u)))) row.append(tagEl(why, "info"));
+      addTagUi();
+      actionBtn(tr("btn_keep"), tr("tip_keep"), () => keepUsers([u.pk]));
     } else if (tab === "keep") {
-      const b = document.createElement("button");
-      b.className = "btn sm";
-      b.textContent = "Move back";
-      b.title = "Put this account back in the unfollow list";
-      b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); unkeepUsers([u.pk]); };
-      row.append(b);
+      addTagUi();
+      actionBtn(tr("btn_moveback"), tr("tip_moveback"), () => unkeepUsers([u.pk]));
     } else if (tab === "history") {
-      if (u.refollowed) row.append(tagEl("Re-followed", "ok"));
-      else if (A.follow) {
-        const b = document.createElement("button");
-        b.className = "btn sm";
-        b.textContent = "Re-follow";
-        b.title = "Follow this account again (it is then added to Kept)";
-        b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); refollow(u, b); };
-        row.append(b);
-      }
+      if (u.refollowed) row.append(tagEl(tr("tag_refollowed"), "ok"));
+      else if (A.follow) actionBtn(tr("btn_refollow"), tr("tip_refollow"), (b) => refollow(u, b));
     } else if (tab === "fans") {
-      row.append(tagEl("Follows you", "ok"));
+      row.append(tagEl(tr("tag_followsyou"), "ok"));
     } else if (tab === "mutual") {
-      row.append(tagEl("Mutual", "ok"));
+      row.append(tagEl(tr("tag_mutual"), "ok"));
     } else if (tab === "followers") {
-      if (followingSet.has(u.pk)) row.append(tagEl("Mutual", "ok"));
-      else if (lists && lists.following) row.append(tagEl("You don't follow back", ""));
+      if (followingSet.has(u.pk)) row.append(tagEl(tr("tag_mutual"), "ok"));
+      else if (lists && lists.following) row.append(tagEl(tr("tag_youdont"), ""));
     } else if (tab === "following") {
-      if (histSet.has(u.pk)) row.append(tagEl("Unfollowed", "warn"));
-      else if (lists && lists.followers) row.append(followerSet.has(u.pk) ? tagEl("Follows you", "ok") : tagEl("Not following back", "warn"));
+      if (histSet.has(u.pk)) row.append(tagEl(tr("tag_unfollowed"), "warn"));
+      else if (lists && lists.followers) row.append(followerSet.has(u.pk) ? tagEl(tr("tag_followsyou"), "ok") : tagEl(tr("tag_notback"), "warn"));
     } else if (tab === "changes") {
-      row.append(u.type === "lost" ? tagEl("Unfollowed you", "warn") : tagEl("New follower", "ok"));
+      row.append(u.type === "lost" ? tagEl(tr("tag_lost"), "warn") : tagEl(tr("tag_new"), "ok"));
     }
     return { row, cb };
   }
@@ -553,6 +661,10 @@
     listEl.replaceChildren();
     rows.clear();
     filtered = tabItems().filter(matches);
+    if (FILTER_TABS.has(tab)) {
+      filtered = filtered.filter(passFilter);
+      if (SORTERS[srt]) filtered = filtered.slice().sort(SORTERS[srt]);
+    }
     shown = 0;
     if (!filtered.length) listEl.append(emptyEl());
     else { appendMore(); fillView(); }
@@ -566,16 +678,6 @@
     rows.delete(pk);
     if (!filtered.length) { listEl.replaceChildren(emptyEl()); } else fillView();
   }
-  function addToList(u) {
-    if (!matches(u)) return;
-    const e = listEl.querySelector(".empty");
-    if (e) e.remove();
-    filtered.unshift(u);
-    shown++;
-    const r = buildRow(u);
-    listEl.prepend(r.row);
-    if (r.cb) rows.set(u.pk, r);
-  }
   function syncChecks() { rows.forEach(({ cb }, pk) => (cb.checked = selected.has(pk))); }
 
   function showTab(id) {
@@ -585,8 +687,19 @@
   }
   let qT;
   $("q").oninput = () => { clearTimeout(qT); qT = setTimeout(() => { query = $("q").value.trim().toLowerCase(); renderList(); }, 140); };
+  $("fltr").onchange = () => { fltr = $("fltr").value; renderList(); };
+  $("srt").onchange = () => { srt = $("srt").value; renderList(); };
 
   // ---------- header numbers, chips, footer ----------
+  let lastStatus = "";
+  function publishStatus() { // lets the toolbar badge show today's progress
+    const st = { used: capInfo.used, cap: capInfo.cap, running: unfollowing, cool: coolUntil > Date.now() };
+    const j = JSON.stringify(st);
+    if (j === lastStatus) return;
+    lastStatus = j;
+    chrome.storage.local.set({ nfb_status: st });
+  }
+
   function updateChrome() {
     const fing = scanCache && typeof scanCache.following === "number" ? scanCache.following : lists && lists.following ? lists.following.length : null;
     const fol = scanCache && typeof scanCache.followers === "number" ? scanCache.followers : lists && lists.followers ? lists.followers.length : null;
@@ -596,23 +709,29 @@
     $("stTodo").textContent = fmtN(users.length);
     tabsEl.querySelectorAll(".tab").forEach((b) => {
       const t = TABS.find((x) => x.id === b.dataset.id);
-      b.classList.toggle("on", t.id === tab);
+      const on = t.id === tab;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-selected", on ? "true" : "false");
+      b.tabIndex = on ? 0 : -1;
+      b.querySelector(".tl").textContent = tabLabel(t.id);
       b.querySelector(".n").textContent = t.id === "stats" ? "" : fmtN(t.count());
     });
     const todo = tab === "todo";
     $("toolbar").style.display = tab === "stats" ? "none" : "flex";
+    $("filters").style.display = FILTER_TABS.has(tab) ? "flex" : "none";
     $("expJson").style.display = tab === "keep" ? "" : "none";
     $("impKept").style.display = tab === "keep" ? "" : "none";
     $("sel2").style.display = todo ? "flex" : "none";
     $("footer").style.display = todo ? "flex" : "none";
-    $("selLabel").textContent = `${selected.size} selected`;
-    $("selSub").textContent = `${maxSel()} left today`;
-    delBtn.textContent = selected.size ? `Unfollow ${selected.size}` : "Unfollow";
+    $("selLabel").textContent = tr("ft_selected", { n: selected.size });
+    $("selSub").textContent = tr("ft_left", { n: maxSel() });
+    delBtn.textContent = selected.size ? tr("btn_unfollow_n", { n: selected.size }) : tr("btn_unfollow");
     delBtn.disabled = unfollowing || !selected.size;
     keepBtn.disabled = unfollowing || !selected.size;
     const partial = lists && lists.followingComplete === false && (tab === "following" || tab === "mutual" || tab === "fans");
-    $("listNote").textContent = partial ? "Showing only the accounts fetched in the last scan (it was limited). Use Check → all for the full lists." : "";
+    $("listNote").textContent = partial ? tr("note_partial") : "";
     tick();
+    publishStatus();
   }
 
   let lastDay = NFB.today();
@@ -622,15 +741,15 @@
     if (coolUntil && coolUntil <= now) { coolUntil = 0; chrome.storage.local.remove(coolKey); }
     const outside = !NFB.inActiveHours(safety);
     let txt, kind;
-    if (coolUntil > now) { txt = `🧊 Cool-down · ${NFB.fmtHM(coolUntil - now)} left`; kind = "warn"; }
-    else if (outside) { txt = `🌙 Outside active hours · opens in ${NFB.fmtHM(NFB.msToActiveStart(safety))}`; kind = "warn"; }
-    else if (unfollowing && runNextAt > now) { txt = `⏱ Next unfollow in ${NFB.fmtClock((runNextAt - now) / 1000)}`; kind = "info"; }
-    else if (unfollowing) { txt = "⏱ Unfollowing…"; kind = "info"; }
-    else if (maxSel() <= 0) { txt = `⏳ Daily limit reached · resets in ${NFB.fmtHM(NFB.msToMidnight())}`; kind = "warn"; }
-    else { txt = "✓ Ready to unfollow"; kind = "ok"; }
+    if (coolUntil > now) { txt = tr("chip_cool", { t: NFB.fmtHM(coolUntil - now) }); kind = "warn"; }
+    else if (outside) { txt = tr("chip_hours", { t: NFB.fmtHM(NFB.msToActiveStart(safety)) }); kind = "warn"; }
+    else if (unfollowing && runNextAt > now) { txt = tr("chip_next", { t: NFB.fmtClock((runNextAt - now) / 1000) }); kind = "info"; }
+    else if (unfollowing) { txt = tr("chip_run"); kind = "info"; }
+    else if (maxSel() <= 0) { txt = tr("chip_cap", { t: NFB.fmtHM(NFB.msToMidnight()) }); kind = "warn"; }
+    else { txt = tr("chip_ready"); kind = "ok"; }
     chip.textContent = txt;
     chip.className = "chip " + kind;
-    $("chipCap").textContent = `${capInfo.used} / ${capInfo.cap} today${capInfo.warm ? " · warm-up" : ""}`;
+    $("chipCap").textContent = tr("chip_today", { used: capInfo.used, cap: capInfo.cap }) + (capInfo.warm ? tr("chip_warm") : "");
     if (NFB.today() !== lastDay) { lastDay = NFB.today(); refreshCap(); }
   }
   setInterval(tick, 1000);
@@ -650,46 +769,22 @@
     updateChrome();
   }
 
-  // ---------- keep list (changes rows in place: no re-render, no flicker) ----------
-  function keepUsers(pks) {
-    let n = 0;
-    pks.forEach((pk) => {
-      const u = users.find((x) => x.pk === pk);
-      if (!u) return;
-      keep[pk] = u;
-      selected.delete(pk);
-      if (tab === "todo") removeFromList(pk);
-      n++;
-    });
-    if (!n) return toast("Select at least one account first.");
-    users = users.filter((x) => !keep[x.pk]);
-    saveKeep();
-    saveSel();
-    updateChrome();
-    toast(`Kept ${n} account${n > 1 ? "s" : ""}. They won't appear in future scans.`);
-  }
-  function unkeepUsers(pks) {
-    let n = 0;
-    pks.forEach((pk) => {
-      const u = keep[pk];
-      if (!u) return;
-      delete keep[pk];
-      if (!gone.has(pk)) users.unshift(u);
-      if (tab === "keep") removeFromList(pk);
-      n++;
-    });
-    if (!n) return;
-    saveKeep();
-    updateChrome();
-    toast(`Moved ${n} account${n > 1 ? "s" : ""} back to "To unfollow".`);
-  }
-  keepBtn.onclick = () => keepUsers([...selected]);
 
-  // ---------- protection (verified / recently followed) ----------
+  // ---------- protection (bulk selection skips these) ----------
+  let patterns = [], patSrc = null;
+  const compilePatterns = () =>
+    (safety.protectPattern || "").split(",").map((x) => x.trim()).filter(Boolean)
+      .map((p) => new RegExp("^" + p.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$", "i"));
   const protectReason = (u) => {
-    if (safety.protectVerified && u.verified) return "Verified";
+    if (safety.protectVerified && u.verified) return tr("tag_verified");
+    if (safety.protectPrivate && u.private === true) return tr("tag_private");
+    if (safety.protectTagged && tagOf(u)) return tagLabel(tagOf(u));
+    if (safety.protectPattern) {
+      if (safety.protectPattern !== patSrc) { patSrc = safety.protectPattern; patterns = compilePatterns(); }
+      if (patterns.some((r) => r.test(u.username || ""))) return tr("tag_pattern");
+    }
     const d = safety.protectRecentDays;
-    if (d > 0) { const t = seen.m[u.pk]; if (t && Date.now() - t < d * 864e5) return "Recent"; }
+    if (d > 0) { const x = seen.m[u.pk]; if (x && Date.now() - x < d * 864e5) return tr("tag_recent"); }
     return "";
   };
   async function updateSeen(res) {
@@ -701,12 +796,79 @@
     await chrome.storage.local.set({ [seenKey]: seen });
   }
 
+  // ---------- labels + notes ----------
+  async function editTag(u) {
+    const cur = tags[u.pk] || { tag: "", note: "" };
+    const body = document.createElement("div");
+    body.textContent = tr("tag_dlg_body");
+    const sel = document.createElement("select");
+    sel.className = "field";
+    sel.style.cssText = "width:100%;margin-top:10px";
+    [["", tr("tag_none")], ...TAG_IDS.map((id) => [id, tagLabel(id)])].forEach(([v, l]) => {
+      const o = document.createElement("option");
+      o.value = v; o.textContent = l; o.selected = v === cur.tag;
+      sel.append(o);
+    });
+    const ta = document.createElement("textarea");
+    ta.className = "field";
+    ta.style.cssText = "width:100%;height:72px;margin-top:8px;resize:vertical";
+    ta.placeholder = tr("tag_note_ph");
+    ta.maxLength = 200;
+    ta.value = cur.note || "";
+    body.append(sel, ta);
+    const ok = await ask({ title: tr("tag_dlg_title", { u: u.username }), body, confirmText: tr("btn_save"), cancelText: tr("btn_cancel"), focusFirst: true });
+    if (!ok) return;
+    if (!sel.value && !ta.value.trim()) delete tags[u.pk];
+    else tags[u.pk] = { tag: sel.value, note: ta.value.trim() };
+    saveTags();
+    const old = listEl.querySelector(`.row[data-pk="${esc(u.pk)}"]`);
+    if (old) { const r = buildRow(u); old.replaceWith(r.row); if (r.cb) rows.set(u.pk, r); }
+    updateChrome();
+  }
+
+  // ---------- keep list (changes rows in place: no re-render, no flicker) ----------
+  const slimKeep = (u) => ({ pk: u.pk, username: u.username, full_name: u.full_name || "", pic: u.pic || "", verified: !!u.verified, private: u.private, noPic: u.noPic });
+  function keepUsers(pks, quiet) {
+    let n = 0;
+    const did = [];
+    pks.forEach((pk) => {
+      const u = users.find((x) => x.pk === pk);
+      if (!u) return;
+      keep[pk] = u;
+      selected.delete(pk);
+      if (tab === "todo") removeFromList(pk);
+      did.push(pk);
+      n++;
+    });
+    if (!n) return toast(tr("ts_pickfirst"));
+    users = users.filter((x) => !keep[x.pk]);
+    saveKeep();
+    saveSel();
+    updateChrome();
+    if (!quiet) toast(tr("ts_kept", { n }), { label: tr("btn_undo"), fn: () => unkeepUsers(did, true) });
+  }
+  function unkeepUsers(pks, quiet) {
+    let n = 0;
+    pks.forEach((pk) => {
+      const u = keep[pk];
+      if (!u) return;
+      delete keep[pk];
+      if (!gone.has(pk)) users.unshift(u);
+      if (tab === "keep") removeFromList(pk);
+      n++;
+    });
+    if (!n) return;
+    saveKeep();
+    if (tab === "todo") renderList(); else updateChrome();
+    if (!quiet) toast(tr("ts_moved", { n }));
+  }
+  keepBtn.onclick = () => keepUsers([...selected]);
+
   // ---------- re-follow (Unfollowed tab) ----------
-  const slimKeep = (u) => ({ pk: u.pk, username: u.username, full_name: u.full_name || "", pic: u.pic || "", verified: !!u.verified });
   async function refollow(u, btn) {
     if (!A.follow) return;
     btn.disabled = true;
-    btn.textContent = "Following…";
+    btn.textContent = tr("btn_refollowing");
     try {
       await A.follow(u, safety);
       u.refollowed = true; // `u` is the history entry itself
@@ -714,14 +876,14 @@
       gone.delete(u.pk);
       await Promise.all([saveHist(), saveKeep(), chrome.storage.local.set({ [goneKey]: [...gone] })]);
       derive();
-      log(`↺ re-followed ${u.username}`);
-      toast(`Following @${u.username} again. It was added to Kept so it won't be unfollowed.`);
+      log(`↺ re-followed ${u.username}`, u.username);
+      toast(tr("ts_refollowed", { u: u.username }));
       if (tab === "history") renderList(); else updateChrome();
     } catch (e) {
       btn.disabled = false;
-      btn.textContent = "Re-follow";
-      log(`✗ re-follow ${u.username}: ${e.message}`);
-      toast("Couldn't re-follow: " + e.message);
+      btn.textContent = tr("btn_refollow");
+      log(`✗ re-follow ${u.username}: ${e.message}`, u.username);
+      toast(tr("ts_refollow_fail", { e: e.message }));
     }
   }
 
@@ -738,21 +900,21 @@
   const iso = (t) => new Date(t).toISOString();
   $("expCsv").onclick = () => {
     const items = TABS.find((x) => x.id === tab).items();
-    if (!items.length) return toast("Nothing to export in this tab.");
+    if (!items.length) return toast(tr("ts_nothing"));
     const extra = tab === "history" ? [(u) => iso(u.at), (u) => (u.refollowed ? "yes" : "no")] : tab === "changes" ? [(u) => u.type, (u) => iso(u.at)] : [];
-    const head = ["username", "full_name", "profile_url", ...(tab === "history" ? ["unfollowed_at", "re_followed"] : tab === "changes" ? ["change", "at"] : [])];
+    const head = ["username", "full_name", "profile_url", "label", "note", ...(tab === "history" ? ["unfollowed_at", "re_followed"] : tab === "changes" ? ["change", "at"] : [])];
     const lines = [head.map(csvCell).join(",")].concat(
-      items.map((u) => [u.username, u.full_name || "", A.profileUrl(u), ...extra.map((f) => f(u))].map(csvCell).join(","))
+      items.map((u) => [u.username, u.full_name || "", A.profileUrl(u), tagOf(u) ? tagLabel(tagOf(u)) : "", (tags[u.pk] && tags[u.pk].note) || "", ...extra.map((f) => f(u))].map(csvCell).join(","))
     );
     download(`unfollow-guard-${A.id}-${tab}.csv`, "\ufeff" + lines.join("\r\n"), "text/csv");
-    toast(`Exported ${items.length} rows.`);
+    toast(tr("ts_exported", { n: items.length }));
   };
   $("expJson").onclick = () => {
-    const kept = Object.values(keep).map(slimKeep);
-    if (!kept.length) return toast("Your kept list is empty.");
-    const data = { app: "unfollow-guard", version: 1, platform: A.id, account: ACCT, exportedAt: new Date().toISOString(), kept };
+    const kept = Object.values(keep).map((u) => ({ ...slimKeep(u), tag: tagOf(u), note: (tags[u.pk] && tags[u.pk].note) || "" }));
+    if (!kept.length) return toast(tr("ts_nothing"));
+    const data = { app: "unfollow-guard", version: 2, platform: A.id, account: ACCT, exportedAt: new Date().toISOString(), kept };
     download(`unfollow-guard-${A.id}-kept-backup.json`, JSON.stringify(data, null, 2), "application/json");
-    toast(`Backed up ${kept.length} kept accounts.`);
+    toast(tr("ts_exported", { n: kept.length }));
   };
   const readText = (f) => (f.text ? f.text() : new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsText(f); }));
   function importKept(text) {
@@ -770,6 +932,7 @@
     entries.forEach((e) => {
       const found = e.pk ? e : byName.get(String(e.username || "").toLowerCase());
       if (!found || !found.pk) { missing++; return; }
+      if (e.tag || e.note) tags[found.pk] = { tag: TAG_IDS.includes(e.tag) ? e.tag : "", note: String(e.note || "") };
       if (keep[found.pk]) return;
       keep[found.pk] = slimKeep(found);
       selected.delete(found.pk);
@@ -777,6 +940,7 @@
     });
     users = users.filter((x) => !keep[x.pk]);
     saveKeep();
+    saveTags();
     saveSel();
     renderList();
     toast(`Imported ${added} kept account${added === 1 ? "" : "s"}${missing ? `; ${missing} not found in your saved lists (scan first)` : ""}.`);
@@ -841,6 +1005,7 @@
     listEl.append(wrap);
   }
 
+
   // ---------- scan ----------
   if (!A.supportsStart) $("startwrap").style.display = "none";
   const getOpts = () => ({
@@ -856,8 +1021,9 @@
     const allow = !!s[allowKey];
     scanBtn.disabled = scanning || unfollowing || !allow || !A.canScan(scanCache);
     $("lim").disabled = $("start").disabled = scanBtn.disabled;
-    scanBtn.textContent = scanning ? "Scanning…" : allow ? A.scanLabel(scanCache) : "🔒 Scan locked";
-    scanBtn.title = allow ? "" : "Scanning locks itself after each scan to avoid repeat requests. Turn on “Allow scanning” in ⚙ Settings.";
+    const label = A.scanLabel(scanCache);
+    scanBtn.textContent = scanning ? tr("btn_scanning") : allow ? (label === "Scan" ? tr("btn_scan") : label) : tr("btn_locked");
+    scanBtn.title = allow ? "" : tr("tip_locked");
   }
   setInterval(refreshButtons, 1500);
 
@@ -866,7 +1032,6 @@
     Object.keys(add || {}).forEach((k) => { if (add[k] !== undefined) out[k] = add[k]; });
     return out;
   };
-
   const slim = (u) => ({ pk: u.pk, username: u.username, full_name: u.full_name || "", pic: u.pic || "" });
   // Compares this scan's followers with the previous snapshot: who unfollowed you, who started following you.
   async function recordFollowerChanges(res) {
@@ -878,13 +1043,13 @@
     let msg = " Follower baseline saved: future scans will show who unfollowed you.";
     if (snap && snap.users && snap.users.length) {
       const curSet = new Set(cur.map((u) => u.pk)), oldSet = new Set(snap.users.map((u) => u.pk));
-      const lost = snap.users.filter((u) => !curSet.has(u.pk));
-      const gained = cur.filter((u) => !oldSet.has(u.pk));
+      const lostU = snap.users.filter((u) => !curSet.has(u.pk));
+      const gainedU = cur.filter((u) => !oldSet.has(u.pk));
       const at = Date.now();
-      flw = flw.concat(lost.map((u) => ({ ...u, type: "lost", at })), gained.map((u) => ({ ...u, type: "new", at }))).slice(-2000);
+      flw = flw.concat(lostU.map((u) => ({ ...u, type: "lost", at })), gainedU.map((u) => ({ ...u, type: "new", at }))).slice(-2000);
       await chrome.storage.local.set({ [flwKey]: flw });
-      msg = ` Since ${NFB.fmtWhen(snap.at)}: ${gained.length} new follower${gained.length === 1 ? "" : "s"}, ${lost.length} unfollowed you.`;
-      if (lost.length) toast(`${lost.length} ${lost.length === 1 ? "person" : "people"} unfollowed you. See the Changes tab.`);
+      msg = ` Since ${NFB.fmtWhen(snap.at)}: ${gainedU.length} new follower${gainedU.length === 1 ? "" : "s"}, ${lostU.length} unfollowed you.`;
+      if (lostU.length) toast(`${lostU.length} ${lostU.length === 1 ? "person" : "people"} unfollowed you. See the Changes tab.`);
     }
     await chrome.storage.local.set({ [snapKey]: { at: Date.now(), users: cur } });
     return msg;
@@ -896,7 +1061,7 @@
     if (!s[allowKey]) return;
     if (!A.canScan(scanCache)) return setStatus(A.cannotScanMessage(scanCache));
     const opts = getOpts();
-    const ok = await ask({ title: `Scan ${A.label}?`, body: A.scanConfirm(opts), confirmText: "Start scan" });
+    const ok = await ask({ title: tr("dlg_scan_title", { site: A.label }), body: A.scanConfirm(opts), confirmText: tr("btn_startscan"), cancelText: tr("btn_cancel") });
     if (!ok) return;
 
     scanning = true;
@@ -930,7 +1095,7 @@
     refreshButtons();
   };
 
-  // ---------- selection (limited by the daily cap) ----------
+  // ---------- selection (limited by the daily cap, skips protected accounts) ----------
   const todoFirst = () => { if (tab !== "todo") showTab("todo"); };
   const selectPks = (pks, wanted) => {
     selected = new Set(pks.slice(0, maxSel()));
@@ -940,7 +1105,7 @@
     if (wanted > maxSel()) toast(capMsg());
   };
   const pickable = () => filtered.filter((u) => !protectReason(u));
-  const skippedNote = (n) => { if (n > 0) toast(`${n} protected account${n > 1 ? "s were" : " was"} skipped (verified or recently followed).`); };
+  const skippedNote = (n) => { if (n > 0) toast(tr("ts_protected", { n })); };
   $("selN").onclick = () => {
     todoFirst();
     const n = Math.max(1, parseInt($("n").value, 10) || 30);
@@ -967,33 +1132,34 @@
     }
     $("rcTitle").textContent = title;
     $("rcSub").textContent = sub || "";
-    $("rcFill").style.width = Math.max(0, Math.min(100, pct || 0)) + "%";
+    const p = Math.max(0, Math.min(100, pct || 0));
+    $("rcFill").style.width = p + "%";
+    $("rcBar").setAttribute("aria-valuenow", String(Math.round(p)));
     const b = $("rcBadge");
     b.className = "rc-badge " + (spin ? "spin" : tone || "");
     b.textContent = spin ? "" : tone === "ok" ? "✓" : tone === "warn" ? "!" : "";
   }
   function drawRun(run, mode, u) {
     const pct = run.total ? (run.done / run.total) * 100 : 0;
-    const left = users.length.toLocaleString();
     if (mode === "wait" && run.last) {
       const l = run.last;
       banner({
         user: l,
-        title: l.ok ? `Unfollowed @${l.username}` : `Couldn't unfollow @${l.username}`,
-        sub: `${run.done}/${run.total} done · next in ${NFB.fmtClock((run.nextAt - Date.now()) / 1000)} · ${left} left in list`,
+        title: tr(l.ok ? "rc_unfollowed" : "rc_couldnt", { u: l.username }),
+        sub: tr("rc_sub_wait", { done: run.done, total: run.total, t: NFB.fmtClock((run.nextAt - Date.now()) / 1000), left: users.length.toLocaleString() }),
         pct, tone: l.ok ? "ok" : "warn",
       });
     } else if (mode === "open") {
-      banner({ user: u, title: `Opening @${u.username}'s profile…`, sub: `${run.idx + 1} of ${run.total}`, pct, spin: true });
+      banner({ user: u, title: tr("rc_opening", { u: u.username }), sub: tr("rc_sub_n", { i: run.idx + 1, total: run.total }), pct, spin: true });
     } else {
-      banner({ user: u, title: `Unfollowing @${u.username}`, sub: `${run.idx + 1} of ${run.total}`, pct, spin: true });
+      banner({ user: u, title: tr("rc_unfollowing", { u: u.username }), sub: tr("rc_sub_n", { i: run.idx + 1, total: run.total }), pct, spin: true });
     }
   }
   function finishBanner(msg, run, tone) {
     banner({
       user: run && run.last ? run.last : rcUser,
       title: msg,
-      sub: run ? `${run.done} unfollowed · ${users.length.toLocaleString()} left in list` : "",
+      sub: run ? tr("rc_sub_end", { n: run.done, left: users.length.toLocaleString() }) : "",
       pct: run && run.total ? (run.done / run.total) * 100 : 0,
       tone,
     });
@@ -1033,14 +1199,16 @@
   };
   const setRunning = (on) => {
     unfollowing = on;
-    if (on) { stopBtn.style.display = ""; stopBtn.disabled = false; stopBtn.textContent = "Stop"; }
+    if (on) { stopBtn.style.display = ""; stopBtn.disabled = false; delete stopBtn.dataset.state; stopBtn.textContent = tr("btn_stop"); }
     refreshButtons();
     updateChrome();
   };
   const doStop = async () => {
+    if (schedPending) { schedPending.cancel = true; return; }
     stop = true;
     stopBtn.disabled = true;
-    stopBtn.textContent = "Stopping…";
+    stopBtn.dataset.state = "stopping";
+    stopBtn.textContent = tr("btn_stopping");
     await chrome.storage.local.set({ [stopKey]: Date.now() });
   };
   stopBtn.onclick = doStop;
@@ -1058,8 +1226,8 @@
       while (true) {
         run = await loadRun();
         if (!run) { endMsg = "Batch ended"; tone = "warn"; break; }
-        if (stop) { endMsg = "Stopped"; tone = "warn"; break; }
-        if (run.idx >= run.queue.length) { endMsg = `Finished — ${run.done} unfollowed`; break; }
+        if (stop) { endMsg = tr("rc_stopped"); tone = "warn"; break; }
+        if (run.idx >= run.queue.length) { endMsg = tr("rc_finished", { n: run.done }); break; }
         const s0 = await NFB.getSettings();
         const s = run.forceUI ? { ...s0, igMethod: "ui" } : s0;
 
@@ -1072,7 +1240,7 @@
           if (++ticks % 30 === 0) await patchRun({});
         }
         runNextAt = 0;
-        if (stop) { endMsg = "Stopped"; tone = "warn"; break; }
+        if (stop) { endMsg = tr("rc_stopped"); tone = "warn"; break; }
 
         // active hours: wait until the window opens (the tab has to stay open)
         {
@@ -1080,8 +1248,8 @@
           while (!NFB.inActiveHours(sNow) && !stop) {
             banner({
               user: run.last || rcUser,
-              title: "Paused · outside active hours",
-              sub: `Resumes at ${sNow.activeFrom} (in ${NFB.fmtHM(NFB.msToActiveStart(sNow))})`,
+              title: tr("rc_paused"),
+              sub: tr("rc_resumes", { from: sNow.activeFrom, t: NFB.fmtHM(NFB.msToActiveStart(sNow)) }),
               pct: run.total ? (run.done / run.total) * 100 : 0,
               tone: "warn",
             });
@@ -1089,13 +1257,13 @@
             if (++t2 % 15 === 0) { await patchRun({}); sNow = await NFB.getSettings(); }
           }
         }
-        if (stop) { endMsg = "Stopped"; tone = "warn"; break; }
+        if (stop) { endMsg = tr("rc_stopped"); tone = "warn"; break; }
 
         await refreshCap();
-        if (maxSel() <= 0) { endMsg = `Daily limit of ${capInfo.cap} reached`; tone = "warn"; break; }
+        if (maxSel() <= 0) { endMsg = tr("rc_cap", { n: capInfo.cap }); tone = "warn"; break; }
 
-        const t = run.queue[run.idx];
-        const u = users.find((x) => x.pk === t.pk) || t;
+        const q = run.queue[run.idx];
+        const u = users.find((x) => x.pk === q.pk) || q;
 
         // Browser-click method: go to the account's profile first (the page reloads and this loop resumes there).
         const target = A.navigateTo ? A.navigateTo(u, s) : null;
@@ -1108,17 +1276,17 @@
 
         drawRun(run, "work", u);
         if (target) await sleepStop(NFB.rand(2000, 4000));
-        if (stop) { endMsg = "Stopped"; tone = "warn"; break; }
+        if (stop) { endMsg = tr("rc_stopped"); tone = "warn"; break; }
 
         let ok = false, errMsg = "", fatal = false, blocked = false;
         try {
           await A.unfollow(u, s);
           ok = true;
-          log(`✓ ${u.username} unfollowed`);
+          log(`✓ ${u.username} unfollowed`, u.username);
         } catch (e) {
-          if (e.stopped) { endMsg = "Stopped"; tone = "warn"; break; }
+          if (e.stopped) { endMsg = tr("rc_stopped"); tone = "warn"; break; }
           errMsg = e.message;
-          log(`✗ ${u.username} — ${e.message}`);
+          log(`✗ ${u.username} — ${e.message}`, u.username);
           if (e.useUI && !run.forceUI) {
             await patchRun({ forceUI: true });
             log("Direct API was rejected: switching to browser clicks for the rest of this batch");
@@ -1169,25 +1337,41 @@
     log(endMsg);
     await endRun();
     await chrome.storage.local.remove(stopKey);
+    const byUser = endMsg === tr("rc_stopped");
     stop = false;
     runNextAt = 0;
     setRunning(false);
     finishBanner(endMsg, finalRun, tone);
     setStatus(endMsg);
+    if (finalRun && !byUser && (finalRun.done > 0 || tone === "warn")) {
+      notify(tone === "ok" ? tr("nf_finished") : tr("nf_stopped"), `${endMsg} (${finalRun.done}/${finalRun.total})`);
+    }
+  }
+
+  async function beginBatch(chosen, auto) {
+    await chrome.storage.local.remove(stopKey);
+    stop = false;
+    await saveRun({
+      owner: OWNER,
+      queue: chosen.map((u) => ({ pk: u.pk, username: u.username, full_name: u.full_name || "", pic: u.pic || "" })),
+      idx: 0, done: 0, fails: 0, total: chosen.length, nextAt: 0, navFor: -1, forceUI: false, last: null,
+    });
+    log(`${auto ? "Starting scheduled batch" : "Starting batch"} of ${chosen.length}`);
+    runLoop();
   }
 
   delBtn.onclick = async () => {
     if (unfollowing) return;
     await refreshCap();
     const chosen = users.filter((u) => selected.has(u.pk)).slice(0, maxSel());
-    if (!chosen.length) return toast(maxSel() <= 0 ? capMsg() : "Select at least one account first.");
+    if (!chosen.length) return toast(maxSel() <= 0 ? capMsg() : tr("ts_pickfirst"));
     const s = await NFB.getSettings();
     if (coolUntil > Date.now()) {
       const endIt = await ask({
-        title: "Cool-down is active",
-        body: `Unfollowing is paused for another ${NFB.fmtHM(coolUntil - Date.now())} because ${A.label} recently blocked or rate-limited an action. Continuing now makes another block more likely.`,
-        confirmText: "End cool-down and continue",
-        cancelText: "Keep waiting",
+        title: tr("dlg_cool_title"),
+        body: tr("dlg_cool_body", { t: NFB.fmtHM(coolUntil - Date.now()), site: A.label }),
+        confirmText: tr("btn_endcool"),
+        cancelText: tr("btn_keepwait"),
         danger: true,
       });
       if (!endIt) return;
@@ -1198,7 +1382,7 @@
 
     const body = document.createElement("div");
     const p1 = document.createElement("div");
-    p1.textContent = `They will be unfollowed one at a time, ${s.minDelay}–${s.maxDelay} seconds apart. Daily limit: ${capInfo.used} of ${capInfo.cap} used.`;
+    p1.textContent = tr("dlg_unf_body", { min: s.minDelay, max: s.maxDelay, used: capInfo.used, cap: capInfo.cap });
     const stack = document.createElement("div");
     stack.className = "mstack";
     chosen.slice(0, 6).forEach((u) => stack.append(avatarEl(u)));
@@ -1212,28 +1396,135 @@
     if (browserMode) {
       const p2 = document.createElement("div");
       p2.style.marginTop = "8px";
-      p2.textContent = "The page will open each profile in turn. Keep this tab open until it finishes.";
+      p2.textContent = tr("dlg_unf_browser");
       body.append(p2);
     }
     if (!NFB.inActiveHours(s)) {
       const p3 = document.createElement("div");
       p3.style.marginTop = "8px";
-      p3.textContent = `It's outside your active hours, so the batch will wait until ${s.activeFrom} (keep this tab open).`;
+      p3.textContent = tr("dlg_unf_hours", { from: s.activeFrom });
       body.append(p3);
     }
-    const ok = await ask({ title: `Unfollow ${chosen.length} account${chosen.length > 1 ? "s" : ""}?`, body, confirmText: `Unfollow ${chosen.length}`, danger: true });
+    const ok = await ask({ title: tr("dlg_unf_title", { n: chosen.length }), body, confirmText: tr("btn_unfollow_n", { n: chosen.length }), cancelText: tr("btn_cancel"), danger: true });
     if (!ok) return;
-
-    await chrome.storage.local.remove(stopKey);
-    stop = false;
-    await saveRun({
-      owner: OWNER,
-      queue: chosen.map((u) => ({ pk: u.pk, username: u.username, full_name: u.full_name || "", pic: u.pic || "" })),
-      idx: 0, done: 0, fails: 0, total: chosen.length, nextAt: 0, navFor: -1, forceUI: false, last: null,
-    });
-    log(`Starting batch of ${chosen.length}`);
-    runLoop();
+    beginBatch(chosen, false);
   };
+
+  // ---------- daily schedule (needs an open Instagram tab; shows a cancellable countdown first) ----------
+  async function schedCheck() {
+    if (!enabled || !A.canSchedule || unfollowing || scanning || schedPending || !safety.scheduleEnabled) return;
+    const now = new Date();
+    const [h, m] = String(safety.scheduleTime || "10:00").split(":").map(Number);
+    const late = now.getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate(), h || 0, m || 0).getTime();
+    if (late < 0 || late > 3 * 3600000) return;                       // only within 3 hours after the set time
+    if ((await chrome.storage.local.get(schedKey))[schedKey] === NFB.today()) return;
+    if (coolUntil > Date.now() || !NFB.inActiveHours(safety) || maxSel() <= 0 || !users.length) return;
+    const pool = users.filter((u) => !protectReason(u)).slice(0, Math.min(safety.scheduleCount || 20, maxSel()));
+    if (!pool.length) return;
+    await chrome.storage.local.set({ [schedKey]: NFB.today() });       // at most one automatic batch per day
+    schedPending = { cancel: false };
+    stopBtn.style.display = "";
+    stopBtn.disabled = false;
+    stopBtn.textContent = tr("btn_cancel");
+    for (let sec = 20; sec > 0 && !schedPending.cancel; sec--) {
+      banner({ user: null, title: tr("sc_title", { s: sec }), sub: tr("sc_sub", { n: pool.length }), pct: ((20 - sec) / 20) * 100, tone: "warn" });
+      await NFB.sleep(1000);
+    }
+    const cancelled = schedPending.cancel;
+    schedPending = null;
+    stopBtn.textContent = tr("btn_stop");
+    if (cancelled) {
+      $("runcard").style.display = "none";
+      stopBtn.style.display = "";
+      toast(tr("sc_cancelled"));
+      return;
+    }
+    notify("Unfollow Guard · " + A.label, tr("sc_sub", { n: pool.length }));
+    beginBatch(pool, true);
+  }
+  setInterval(schedCheck, 30000);
+  NFB.schedCheck = schedCheck; // exposed for the automated tests
+
+
+  // ---------- welcome tour ----------
+  async function showTour() {
+    for (let i = 1; i <= 5; i++) {
+      const last = i === 5;
+      const ok = await ask({ title: tr(`tour_${i}_t`), body: tr(`tour_${i}_b`), confirmText: tr(last ? "btn_done" : "btn_next"), cancelText: tr("btn_skip"), hideCancel: last });
+      if (!ok) break;
+    }
+    onboarded = true;
+    chrome.storage.local.set({ nfb_onboarded: true });
+  }
+  const maybeTour = () => { if (!onboarded) { onboarded = true; showTour(); } };
+
+  // ---------- self-check + debug report ----------
+  const hash = (str) => { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0; return h.toString(16); };
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch {}
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.cssText = "position:fixed;opacity:0";
+    document.body.append(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch {}
+    ta.remove();
+    return ok;
+  }
+  function buildReport(checkLines) {
+    const man = (chrome.runtime && chrome.runtime.getManifest && chrome.runtime.getManifest()) || {};
+    const keys = ["igMethod", "cooldownHours", "activeEnabled", "activeFrom", "activeTo", "protectVerified", "protectPrivate", "protectTagged", "protectPattern",
+      "protectRecentDays", "warmupEnabled", "warmupStart", "warmupStep", "scheduleEnabled", "scheduleTime", "scheduleCount", "minDelay", "maxDelay", "lang", "theme"];
+    const maskedLog = logEntries.slice(-40).map((e) => `${new Date(e.at).toISOString()}  ${e.name ? e.text.split(e.name).join("@user") : e.text}`);
+    return [
+      "Unfollow Guard debug report",
+      `Version: ${man.version || "?"}`,
+      `Site: ${A.id} (account ${hash(ACCT)})  Host: ${location.hostname}`,
+      `Browser: ${navigator.userAgent}`,
+      `Language: ${NFB.lang}`,
+      `Settings: ${keys.map((k) => `${k}=${safety[k]}`).join(", ")}`,
+      `Counts: toUnfollow=${users.length}, kept=${Object.keys(keep).length}, history=${hist.length}, followers=${lists && lists.followers ? lists.followers.length : "-"}, following=${lists && lists.following ? lists.following.length : "-"}, changes=${flw.length}`,
+      `Today: ${capInfo.used}/${capInfo.cap}${capInfo.warm ? " (warm-up)" : ""}; cool-down=${coolUntil > Date.now() ? NFB.fmtHM(coolUntil - Date.now()) : "no"}; running=${unfollowing}`,
+      "",
+      "Self-check:",
+      ...(checkLines || ["(not run)"]),
+      "",
+      "Last log lines (usernames hidden):",
+      ...maskedLog,
+      "",
+      "No cookies, tokens or usernames are included in this report.",
+    ].join("\n");
+  }
+  async function selfCheck() {
+    let res;
+    try { res = A.diagnose ? await A.diagnose(safety) : []; } catch (e) { res = [{ ok: false, name: "Self-check", detail: e.message }]; }
+    const lines = res.map((r) => `${r.ok === true ? "✓" : r.ok === false ? "✗" : "•"} ${r.name}${r.detail ? " — " + r.detail : ""}`);
+    const body = document.createElement("pre");
+    body.style.cssText = "white-space:pre-wrap;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace;margin:0;max-height:280px;overflow:auto;color:var(--fg)";
+    body.textContent = lines.join("\n") || "–";
+    const copy = await ask({ title: tr("btn_selfcheck"), body, confirmText: tr("btn_copydebug"), cancelText: tr("tt_close") });
+    if (copy) toast(tr((await copyText(buildReport(lines))) ? "ts_copied" : "ts_nothing"));
+    return res;
+  }
+  $("diagBtn").onclick = selfCheck;
+  $("dbgBtn").onclick = async () => toast(tr((await copyText(buildReport(null))) ? "ts_copied" : "ts_nothing"));
+
+  // ---------- keyboard ----------
+  panel.addEventListener("keydown", (e) => {
+    if (e.defaultPrevented || shadow.querySelector(".overlay")) return;
+    if (e.key === "Escape") { panel.style.display = "none"; return; }
+    const tg = (shadow.activeElement && shadow.activeElement.tagName) || "";
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(tg)) return;
+    if (e.key === "/") { e.preventDefault(); $("q").focus(); }
+    else if (e.key === "]" || e.key === "[") {
+      const ids = TABS.map((x) => x.id);
+      showTab(ids[(ids.indexOf(tab) + (e.key === "]" ? 1 : ids.length - 1)) % ids.length]);
+    } else if (e.key === "?") showTour();
+  });
+  if (chrome.runtime && chrome.runtime.onMessage) {
+    chrome.runtime.onMessage.addListener((msg) => { if (msg && msg.type === "toggle-panel" && enabled) togglePanel(); });
+  }
 
   // ---------- enable / disable ----------
   function applyEnabled(on) {
@@ -1248,10 +1539,13 @@
   chrome.storage.onChanged.addListener((ch) => {
     if (ch.enabled) applyEnabled(!!ch.enabled.newValue);
     if (ch.theme) showTheme(ch.theme.newValue);
+    if (ch.lang) { NFB.setLang(ch.lang.newValue); applyLang(); showTheme(theme); refreshGear(); refreshButtons(); renderList(); }
     if (ch.position || ch.draggable || ch["fabPos_" + A.id]) loadCfg();
     if (ch["dailyCap_" + A.id] || ch["nfb_daily_" + dayKey] || ch["nfb_days_" + dayKey] || ch.cooldownHours || ch.activeEnabled || ch.activeFrom || ch.activeTo ||
-        ch.warmupEnabled || ch.warmupStart || ch.warmupStep) refreshCap();
-    if (ch.protectVerified || ch.protectRecentDays) refreshCap().then(() => { if (tab === "todo") renderList(); });
+        ch.warmupEnabled || ch.warmupStart || ch.warmupStep || ch.scheduleEnabled || ch.scheduleTime || ch.scheduleCount) refreshCap();
+    if (ch.protectVerified || ch.protectRecentDays || ch.protectPrivate || ch.protectTagged || ch.protectPattern) {
+      refreshCap().then(() => { if (tab === "todo") renderList(); });
+    }
     if (ch[coolKey]) coolUntil = ch[coolKey].newValue || 0;
     if (ch[scanKey]) scanCache = ch[scanKey].newValue || null;
     if (ch[scanKey] || ch[allowKey]) refreshButtons();
@@ -1263,10 +1557,14 @@
     await NFB.migrate();
     await NFB.migrateAccount(A.id, ACCT);
     const s = await NFB.getSettings();
+    NFB.setLang(s.lang);
+    applyLang();
+    showTheme(s.theme);
+    refreshGear();
     applyEnabled(!!s.enabled);
     await loadCfg();
     await NFB.bindSettings(shadow, modalHost);
-    const o = await chrome.storage.local.get([scanKey, listsKey, keepKey, selKey, goneKey, histKey, snapKey, flwKey, coolKey, seenKey, "nfb_opts"]);
+    const o = await chrome.storage.local.get([scanKey, listsKey, keepKey, selKey, goneKey, histKey, snapKey, flwKey, coolKey, seenKey, tagsKey, "nfb_opts", "nfb_onboarded"]);
     scanCache = o[scanKey] || null;
     lists = o[listsKey] || null;
     keep = o[keepKey] || {};
@@ -1274,6 +1572,8 @@
     hist = o[histKey] || [];
     flw = o[flwKey] || [];
     seen = o[seenKey] || seen;
+    tags = o[tagsKey] || {};
+    onboarded = !!o.nfb_onboarded;
     coolUntil = o[coolKey] || 0;
     if (scanCache && scanCache.username) $("acct").textContent = " · @" + scanCache.username;
     // first run with this version: use the saved followers list as the baseline for "who unfollowed me"
@@ -1287,10 +1587,8 @@
     derive();
     await refreshCap();
     renderList();
-    if (users.length) setStatus(`Saved scan: ${users.length.toLocaleString()} accounts don't follow you back. ${selected.size} selected.`);
-    else setStatus(A.id === "facebook"
-      ? "Beta: open your Followers tab and click Collect, then do the same on your Following tab."
-      : "Click Scan to compare who you follow with who follows you.");
+    if (users.length) setStatus(tr("nt_saved", { n: users.length.toLocaleString(), s: selected.size }));
+    else setStatus(tr(A.id === "facebook" ? "nt_hint_fb" : "nt_hint_ig"));
     refreshButtons();
 
     // A batch started in this tab keeps going after the page reloads (browser-click method).
