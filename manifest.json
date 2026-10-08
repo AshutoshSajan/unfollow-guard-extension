@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Unfollow Guard (Instagram & Facebook)",
-  "version": "1.5.0",
+  "name": "Non-Followers (Instagram & Facebook)",
+  "version": "1.6.0",
   "description": "See who doesn't follow you back on Instagram and Facebook and unfollow them slowly in small batches.",
   "permissions": [
     "storage",
@@ -14,7 +14,7 @@
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "Unfollow Guard settings",
+    "default_title": "Non-Followers settings",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",

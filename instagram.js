@@ -88,7 +88,7 @@
 
   const BLOCK_RE = /feedback_required|checkpoint|spam|wait a few minutes|try again later|temporarily|action blocked|we restrict/i;
 
-  async function unfollowViaApi(u) {
+  async function friendshipApi(kind, u) {
     const dtsg = getDtsg();
     if (!dtsg) {
       const err = new Error("Couldn't find Instagram's page token (fb_dtsg)");
@@ -96,7 +96,7 @@
       throw err;
     }
     const lang = (document.documentElement.lang || "en").split("-")[0] || "en";
-    const r = await fetch(`/api/v1/friendships/destroy/${u.pk}/?hl=${lang}`, {
+    const r = await fetch(`/api/v1/friendships/${kind}/${u.pk}/?hl=${lang}`, {
       method: "POST",
       headers: unfollowHeaders(),
       credentials: "include",
@@ -123,10 +123,16 @@
       err.fatal = err.block || [401, 403].includes(r.status) || /login_required/i.test(text);
       throw err;
     }
-    if (j.friendship_status && j.friendship_status.following === true) {
+    const fs = j.friendship_status;
+    if (kind === "destroy" && fs && fs.following === true) {
       throw new Error("Instagram accepted the request but you still follow this account");
     }
+    if (kind === "create" && fs && fs.following === false && !fs.outgoing_request) {
+      throw new Error("Instagram accepted the request but you don't follow this account");
+    }
+    return fs || {};
   }
+  const unfollowViaApi = (u) => friendshipApi("destroy", u);
 
   // ---- Browser-click method: runs on the profile page of the account ----
   const stopCheck = () => {
@@ -144,6 +150,23 @@
   };
   // innerText ignores the hidden <title> inside icons (textContent would read "FollowingDown chevron icon").
   const labelOf = (el) => (((el.innerText || el.textContent || "").trim().split("\n")[0]) || "").trim();
+  // Button words in common languages (best effort). Anything else can be typed into the settings.
+  const LABELS = {
+    following: ["Following", "Siguiendo", "Abonné(e)", "Abonné", "Gefolgt", "Seguindo", "Segui già", "Seguito", "Volgend", "Takiptesin", "Mengikuti", "Вы подписаны", "フォロー中", "팔로잉", "फ़ॉलो कर रहे हैं"],
+    follow: ["Follow", "Seguir", "S'abonner", "Folgen", "Segui", "Volgen", "Takip Et", "Ikuti", "Подписаться", "フォローする", "팔로우", "फ़ॉलो करें"],
+    followBack: ["Follow Back", "Seguir también", "S'abonner en retour", "Zurückfolgen", "Seguir de volta", "Segui anche tu", "Terug volgen", "Sen de Takip Et", "Ikuti Balik", "Подписаться в ответ", "フォローバックする", "맞팔로우하기", "फ़ॉलो बैक करें"],
+    requested: ["Requested", "Solicitado", "Demandé", "Angefragt", "Richiesto", "Aangevraagd", "İstek Gönderildi", "Diminta", "Запрос отправлен", "リクエスト済み", "요청됨", "अनुरोध किया गया"],
+    unfollow: ["Unfollow", "Dejar de seguir", "Se désabonner", "Nicht mehr folgen", "Deixar de seguir", "Smetti di seguire", "Ontvolgen", "Takibi Bırak", "Berhenti Mengikuti", "Отменить подписку", "フォローをやめる", "팔로우 취소", "अनफ़ॉलो करें"],
+  };
+  const escRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const custom = (t) => String(t || "").split(",").map((x) => x.trim()).filter(Boolean);
+  const matcher = (list, extra) => new RegExp("^(?:" + [...list, ...extra].map(escRe).join("|") + ")$", "i");
+  const labelSet = (s) => {
+    const fol = matcher(LABELS.following, custom(s && s.labelFollowing));
+    const notFol = matcher([...LABELS.follow, ...LABELS.followBack], []);
+    const req = matcher(LABELS.requested, []);
+    return { fol, notFol, req, rel: new RegExp(`(?:${fol.source})|(?:${notFol.source})|(?:${req.source})`, "i"), unf: matcher(LABELS.unfollow, custom(s && s.labelUnfollow)) };
+  };
   const btnWithText = (root, re) =>
     [...root.querySelectorAll('button, [role="button"]')].find((b) => re.test(labelOf(b)));
   const realClick = (el) => {
@@ -156,40 +179,42 @@
     const hs = [...document.querySelectorAll("header")];
     return hs.find((h) => (h.innerText || "").toLowerCase().includes(u.username.toLowerCase())) || hs[0] || null;
   };
-  const findUnfollow = () => {
+  const findUnfollow = (re) => {
     for (const d of document.querySelectorAll('[role="dialog"], [role="menu"]')) {
-      const b = btnWithText(d, /^Unfollow$/i);
+      const b = btnWithText(d, re);
       if (b) return b;
     }
-    return btnWithText(document, /^Unfollow$/i);
+    return btnWithText(document, re);
   };
   const BLOCKED = /try again later|action blocked|we restrict certain activity|temporarily blocked/i;
 
-  async function unfollowViaUI(u) {
+  async function unfollowViaUI(u, s) {
+    const L = labelSet(s);
     const head = await waitFor(() => profileHeader(u), 15000);
     if (!head) throw new Error(`The profile page of ${u.username} didn't load`);
     const rel = await waitFor(() => {
       const h = profileHeader(u);
-      return h && btnWithText(h, /^(Following|Requested|Follow|Follow Back)$/i);
+      return h && btnWithText(h, L.rel);
     }, 15000);
     if (!rel) {
       const seen = [...(profileHeader(u) || head).querySelectorAll('button, [role="button"]')].map(labelOf).filter(Boolean).slice(0, 8);
       throw new Error(`Couldn't find the Following button on ${u.username}'s profile. Buttons seen: [${seen.join(" | ")}]. Instagram must be set to English.`);
     }
     const label = labelOf(rel);
-    if (/^follow(\s?back)?$/i.test(label)) return;            // already not following
-    if (/^requested$/i.test(label)) throw new Error(`${u.username}: a follow request is pending, nothing to unfollow`);
+    if (L.notFol.test(label)) return;                          // already not following
+    if (L.req.test(label)) throw new Error(`${u.username}: a follow request is pending, nothing to unfollow`);
 
     realClick(rel);
     for (let n = 0; n < 2; n++) {                              // menu item, then (private accounts) a confirm button
-      const un = await waitFor(findUnfollow, n === 0 ? 8000 : 3000);
+      const un = await waitFor(() => findUnfollow(L.unf), n === 0 ? 8000 : 3000);
       if (!un) break;
       realClick(un);
       await NFB.sleep(NFB.rand(900, 1600));
     }
+    // success = the "Following" button is gone (works in any language, even with custom labels)
     const done = await waitFor(() => {
       const h = profileHeader(u);
-      return h && btnWithText(h, /^Follow(\s?Back)?$/i);
+      return h && h.querySelector('button, [role="button"]') && !btnWithText(h, L.fol);
     }, 10000);
     if (!done) {
       const dlg = [...document.querySelectorAll('[role="dialog"]')].map((d) => d.textContent || "").join(" ");
@@ -302,6 +327,7 @@
 
     // "api" sends the same request the site does; "ui" opens the profile and clicks Following → Unfollow.
     navigateTo: (u, s) => (s && s.igMethod === "ui" ? `https://www.instagram.com/${u.username}/` : null),
-    unfollow: (u, s) => (s && s.igMethod === "ui" ? unfollowViaUI(u) : unfollowViaApi(u)),
+    unfollow: (u, s) => (s && s.igMethod === "ui" ? unfollowViaUI(u, s) : unfollowViaApi(u)),
+    follow: (u) => friendshipApi("create", u),   // used by "Re-follow" on the Unfollowed tab
   };
 })();

@@ -1,0 +1,17 @@
+{
+  "name": "non-followers",
+  "version": "1.6.0",
+  "private": true,
+  "description": "Chromium extension: see who doesn't follow you back on Instagram & Facebook and unfollow them safely.",
+  "license": "MIT",
+  "scripts": {
+    "test": "node tests/features.js && node tests/features2.js && node tests/ui-labels.js && node tests/popup.js && node tests/reenable.js",
+    "build": "python3 scripts/build.py",
+    "screenshots": "node scripts/screenshots/shoot.js && python3 scripts/screenshots/make-gif.py"
+  },
+  "devDependencies": {
+    "@sparticuz/chromium": "^138.0.0",
+    "jsdom": "^26.0.0",
+    "puppeteer-core": "^24.0.0"
+  }
+}

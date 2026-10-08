@@ -8,7 +8,7 @@
   const K = (n) => `nfb_${n}_${A.id}_${ACCT}`;
   const scanKey = K("scan"), listsKey = K("lists"), keepKey = K("keep"), selKey = K("sel"),
         goneKey = K("gone"), histKey = K("hist"), runKey = K("run"), stopKey = K("stop"),
-        snapKey = K("snap"), flwKey = K("flw"), coolKey = K("cool"), metaKey = K("meta");
+        snapKey = K("snap"), flwKey = K("flw"), coolKey = K("cool"), metaKey = K("meta"), seenKey = K("seen");
   const allowKey = "allowScan_" + A.id;
   const IS_BETA = !!(NFB.PLATFORMS.find((p) => p.id === A.id) || {}).beta;
 
@@ -98,6 +98,18 @@
     .tag.warn { background: var(--warn-soft); color: #b45309; }
     .tag.info { background: var(--accent-soft); color: var(--accent); }
     .empty { padding: 36px 24px; color: var(--fg2); font-size: 13.5px; text-align: center; line-height: 1.5; }
+    .stats2 { padding: 12px 14px 16px; }
+    .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .card2 { background: var(--bg2); border-radius: 12px; padding: 12px; }
+    .card2 b { display: block; font-size: 20px; font-weight: 700; color: var(--fg); }
+    .card2 span { display: block; font-size: 12.5px; font-weight: 600; color: var(--fg); margin-top: 2px; }
+    .card2 small { font-size: 11px; color: var(--fg2); }
+    .chart-title { margin: 16px 0 8px; font-size: 12.5px; font-weight: 700; color: var(--fg); }
+    .bars { display: flex; align-items: flex-end; gap: 5px; height: 112px; padding: 0 2px; }
+    .bcol { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 3px; }
+    .bcol i { display: block; width: 100%; max-width: 22px; border-radius: 5px 5px 2px 2px; background: var(--accent); }
+    .bn, .bl { font-size: 10px; color: var(--fg2); }
+    .bn { height: 12px; }
 
     .footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border); background: var(--bg); }
     .footer .count { font-size: 13px; font-weight: 600; color: var(--fg); }
@@ -130,11 +142,11 @@
     .toast { background: #1f2933; color: #fff; font-size: 13px; padding: 9px 14px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.35); max-width: 380px; }
   </style>
   <div class="app" id="app" data-theme="system">
-    <button class="fab" id="fab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="10" cy="8" r="4"/><path d="M2 21a8 8 0 0 1 16 0"/><path d="M16 12h6"/></svg><span>Unfollow Guard</span></button>
+    <button class="fab" id="fab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="10" cy="8" r="4"/><path d="M2 21a8 8 0 0 1 16 0"/><path d="M16 12h6"/></svg><span>Non-followers</span></button>
 
     <div class="panel" id="panel">
       <div class="head">
-        <div class="brand">${LOGO}<div><div class="title">Unfollow Guard</div>
+        <div class="brand">${LOGO}<div><div class="title">Non-Followers</div>
           <div class="sub">${A.label}${IS_BETA ? ' <span class="badge" title="Facebook support is not fully tested yet">BETA</span>' : ""}<span id="acct"></span></div></div></div>
         <div class="hbtns">
           <button class="iconbtn" id="themeBtn" title="Change theme">◐</button>
@@ -162,7 +174,13 @@
           <button class="btn primary" id="scan" style="margin-left:auto">Scan</button>
         </div>
         <div class="tabs" id="tabs"></div>
-        <div class="toolbar"><input class="field search" id="q" type="search" placeholder="Search name or username"></div>
+        <div class="toolbar" id="toolbar">
+          <input class="field search" id="q" type="search" placeholder="Search name or username">
+          <button class="btn sm" id="expCsv" title="Download this list as a CSV file">CSV</button>
+          <button class="btn sm" id="expJson" style="display:none" title="Back up your kept list as a JSON file">Backup</button>
+          <button class="btn sm" id="impKept" style="display:none" title="Import a kept list: a Backup file, or a CSV/TXT with one username per line">Import</button>
+          <input type="file" id="fileIn" accept=".json,.csv,.txt,text/plain,text/csv,application/json" style="display:none">
+        </div>
         <div class="sel2" id="sel2">
           <button class="btn sm" id="selN">Select first</button>
           <input class="field num" id="n" type="number" min="1" value="30">
@@ -172,7 +190,7 @@
         <div class="note" id="listNote"></div>
         <div class="list" id="list"></div>
         <div class="footer" id="footer">
-          <div class="count"><span id="selSub"></span><div id="selLabel"></div></div>
+          <div class="count"><div id="selLabel"></div><span id="selSub"></span></div>
           <div class="acts">
             <button class="btn" id="keepSel">Keep</button>
             <button class="btn danger" id="del">Unfollow</button>
@@ -217,7 +235,7 @@
     d.textContent = new Date().toLocaleTimeString() + "  " + t;
     logBox.prepend(d);
     while (logBox.childElementCount > 80) logBox.lastChild.remove();
-    console.log("[Unfollow Guard]", t);
+    console.log("[Non-Followers]", t);
   };
 
   const placeholder = (u) => {
@@ -346,7 +364,8 @@
   let gone = new Set();       // unfollowed since the last scan
   let hist = [];              // unfollow history [{pk, username, full_name, pic, at}]
   let selected = new Set();
-  let followerSet = new Set(), followingSet = new Set(), histSet = new Set(), mutual = [];
+  let followerSet = new Set(), followingSet = new Set(), histSet = new Set(), mutual = [], fans = [];
+  let seen = { complete: false, m: {} }; // when the extension first saw each account you follow (0 = already followed before)
   let tab = "todo", query = "";
   let capInfo = { cap: 40, used: 0 };
   let scanning = false, unfollowing = false, stop = false, enabled = true;
@@ -358,7 +377,7 @@
 
   const maxSel = () => Math.max(0, capInfo.cap - capInfo.used);
   const capMsg = () =>
-    `Daily limit: ${capInfo.cap}. You've already unfollowed ${capInfo.used} today, so you can select at most ${maxSel()} more. Change the limit in ⚙ Settings.`;
+    `Daily limit: ${capInfo.cap}${capInfo.warm ? " (warm-up; your cap is " + capInfo.base + ")" : ""}. You've already unfollowed ${capInfo.used} today, so you can select at most ${maxSel()} more. Change the limit in ⚙ Settings.`;
   const esc = (v) => (window.CSS && CSS.escape ? CSS.escape(v) : String(v).replace(/"/g, '\\"'));
 
   let selT;
@@ -373,6 +392,7 @@
     followingSet = new Set(fing.map((u) => u.pk));
     histSet = new Set(hist.map((h) => h.pk));
     mutual = fol ? fing.filter((u) => followerSet.has(u.pk) && !histSet.has(u.pk)) : [];
+    fans = fol ? fol.filter((u) => !followingSet.has(u.pk)) : [];
   }
 
   // ---------- tabs + list (renders in chunks: big lists stay fast) ----------
@@ -380,11 +400,13 @@
     { id: "todo", label: "To unfollow", count: () => users.length, items: () => users },
     { id: "keep", label: "Kept", count: () => Object.keys(keep).length, items: () => Object.values(keep) },
     { id: "mutual", label: "Mutuals", count: () => mutual.length, items: () => mutual },
+    { id: "fans", label: "Fans", count: () => fans.length, items: () => fans },
     { id: "followers", label: "Followers", count: () => (lists && lists.followers ? lists.followers.length : 0), items: () => (lists && lists.followers) || [] },
     { id: "following", label: "Following", count: () => (lists && lists.following ? lists.following.length : 0), items: () => (lists && lists.following) || [] },
     { id: "history", label: "Unfollowed", count: () => hist.length, items: () => hist.slice().reverse() },
   ];
   if (A.followerDiff) TABS.push({ id: "changes", label: "Changes", count: () => flw.length, items: () => flw.slice().reverse() });
+  TABS.push({ id: "stats", label: "Stats", count: () => "", items: () => [] });
   const tabsEl = $("tabs");
   TABS.forEach((t) => {
     const b = document.createElement("button");
@@ -403,6 +425,7 @@
     following: "No following list saved yet. Run a scan.",
     history: "You haven't unfollowed anyone with this extension yet.",
     changes: "No follower changes yet. After your next full scan, new followers and people who unfollowed you will appear here.",
+    fans: () => (lists && lists.followers ? "No fans: you follow everyone who follows you (among the accounts fetched)." : "Fans need your followers list. Run a scan first."),
   };
   const emptyEl = () => {
     const d = document.createElement("div");
@@ -464,6 +487,8 @@
     row.append(avatarEl(u), who);
 
     if (tab === "todo") {
+      const why = protectReason(u);
+      if (why) row.append(tagEl(why, "info"));
       const b = document.createElement("button");
       b.className = "btn sm";
       b.textContent = "Keep";
@@ -477,6 +502,18 @@
       b.title = "Put this account back in the unfollow list";
       b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); unkeepUsers([u.pk]); };
       row.append(b);
+    } else if (tab === "history") {
+      if (u.refollowed) row.append(tagEl("Re-followed", "ok"));
+      else if (A.follow) {
+        const b = document.createElement("button");
+        b.className = "btn sm";
+        b.textContent = "Re-follow";
+        b.title = "Follow this account again (it is then added to Kept)";
+        b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); refollow(u, b); };
+        row.append(b);
+      }
+    } else if (tab === "fans") {
+      row.append(tagEl("Follows you", "ok"));
     } else if (tab === "mutual") {
       row.append(tagEl("Mutual", "ok"));
     } else if (tab === "followers") {
@@ -512,6 +549,7 @@
   });
 
   function renderList() {
+    if (tab === "stats") { renderStats(); updateChrome(); return; }
     listEl.replaceChildren();
     rows.clear();
     filtered = tabItems().filter(matches);
@@ -559,9 +597,12 @@
     tabsEl.querySelectorAll(".tab").forEach((b) => {
       const t = TABS.find((x) => x.id === b.dataset.id);
       b.classList.toggle("on", t.id === tab);
-      b.querySelector(".n").textContent = fmtN(t.count());
+      b.querySelector(".n").textContent = t.id === "stats" ? "" : fmtN(t.count());
     });
     const todo = tab === "todo";
+    $("toolbar").style.display = tab === "stats" ? "none" : "flex";
+    $("expJson").style.display = tab === "keep" ? "" : "none";
+    $("impKept").style.display = tab === "keep" ? "" : "none";
     $("sel2").style.display = todo ? "flex" : "none";
     $("footer").style.display = todo ? "flex" : "none";
     $("selLabel").textContent = `${selected.size} selected`;
@@ -569,7 +610,7 @@
     delBtn.textContent = selected.size ? `Unfollow ${selected.size}` : "Unfollow";
     delBtn.disabled = unfollowing || !selected.size;
     keepBtn.disabled = unfollowing || !selected.size;
-    const partial = lists && lists.followingComplete === false && (tab === "following" || tab === "mutual");
+    const partial = lists && lists.followingComplete === false && (tab === "following" || tab === "mutual" || tab === "fans");
     $("listNote").textContent = partial ? "Showing only the accounts fetched in the last scan (it was limited). Use Check → all for the full lists." : "";
     tick();
   }
@@ -589,7 +630,7 @@
     else { txt = "✓ Ready to unfollow"; kind = "ok"; }
     chip.textContent = txt;
     chip.className = "chip " + kind;
-    $("chipCap").textContent = `${capInfo.used} / ${capInfo.cap} today`;
+    $("chipCap").textContent = `${capInfo.used} / ${capInfo.cap} today${capInfo.warm ? " · warm-up" : ""}`;
     if (NFB.today() !== lastDay) { lastDay = NFB.today(); refreshCap(); }
   }
   setInterval(tick, 1000);
@@ -598,7 +639,9 @@
     const s = await NFB.getSettings();
     const d = await NFB.getDaily(dayKey);
     safety = s;
-    capInfo = { cap: s["dailyCap_" + A.id], used: d.count };
+    const base = s["dailyCap_" + A.id];
+    const eff = await NFB.effectiveCap(dayKey, s, base);
+    capInfo = { cap: eff.cap, used: d.count, base, warm: eff.warm };
     if (selected.size > maxSel()) {
       selected = new Set([...selected].slice(0, maxSel()));
       syncChecks();
@@ -641,6 +684,162 @@
     toast(`Moved ${n} account${n > 1 ? "s" : ""} back to "To unfollow".`);
   }
   keepBtn.onclick = () => keepUsers([...selected]);
+
+  // ---------- protection (verified / recently followed) ----------
+  const protectReason = (u) => {
+    if (safety.protectVerified && u.verified) return "Verified";
+    const d = safety.protectRecentDays;
+    if (d > 0) { const t = seen.m[u.pk]; if (t && Date.now() - t < d * 864e5) return "Recent"; }
+    return "";
+  };
+  async function updateSeen(res) {
+    const cur = (res.lists && res.lists.following) || [];
+    if (!cur.length) return;
+    const now = Date.now();
+    cur.forEach((u) => { if (!(u.pk in seen.m)) seen.m[u.pk] = seen.complete ? now : 0; });
+    if (res.lists.followingComplete) seen.complete = true;
+    await chrome.storage.local.set({ [seenKey]: seen });
+  }
+
+  // ---------- re-follow (Unfollowed tab) ----------
+  const slimKeep = (u) => ({ pk: u.pk, username: u.username, full_name: u.full_name || "", pic: u.pic || "", verified: !!u.verified });
+  async function refollow(u, btn) {
+    if (!A.follow) return;
+    btn.disabled = true;
+    btn.textContent = "Following…";
+    try {
+      await A.follow(u, safety);
+      u.refollowed = true; // `u` is the history entry itself
+      keep[u.pk] = slimKeep(u);
+      gone.delete(u.pk);
+      await Promise.all([saveHist(), saveKeep(), chrome.storage.local.set({ [goneKey]: [...gone] })]);
+      derive();
+      log(`↺ re-followed ${u.username}`);
+      toast(`Following @${u.username} again. It was added to Kept so it won't be unfollowed.`);
+      if (tab === "history") renderList(); else updateChrome();
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = "Re-follow";
+      log(`✗ re-follow ${u.username}: ${e.message}`);
+      toast("Couldn't re-follow: " + e.message);
+    }
+  }
+
+  // ---------- export / import ----------
+  const csvCell = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+  const download = (name, text, type) => {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+  };
+  const iso = (t) => new Date(t).toISOString();
+  $("expCsv").onclick = () => {
+    const items = TABS.find((x) => x.id === tab).items();
+    if (!items.length) return toast("Nothing to export in this tab.");
+    const extra = tab === "history" ? [(u) => iso(u.at), (u) => (u.refollowed ? "yes" : "no")] : tab === "changes" ? [(u) => u.type, (u) => iso(u.at)] : [];
+    const head = ["username", "full_name", "profile_url", ...(tab === "history" ? ["unfollowed_at", "re_followed"] : tab === "changes" ? ["change", "at"] : [])];
+    const lines = [head.map(csvCell).join(",")].concat(
+      items.map((u) => [u.username, u.full_name || "", A.profileUrl(u), ...extra.map((f) => f(u))].map(csvCell).join(","))
+    );
+    download(`non-followers-${A.id}-${tab}.csv`, "\ufeff" + lines.join("\r\n"), "text/csv");
+    toast(`Exported ${items.length} rows.`);
+  };
+  $("expJson").onclick = () => {
+    const kept = Object.values(keep).map(slimKeep);
+    if (!kept.length) return toast("Your kept list is empty.");
+    const data = { app: "non-followers", version: 1, platform: A.id, account: ACCT, exportedAt: new Date().toISOString(), kept };
+    download(`non-followers-${A.id}-kept-backup.json`, JSON.stringify(data, null, 2), "application/json");
+    toast(`Backed up ${kept.length} kept accounts.`);
+  };
+  const readText = (f) => (f.text ? f.text() : new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsText(f); }));
+  function importKept(text) {
+    let entries = [];
+    try {
+      const j = JSON.parse(text);
+      const arr = Array.isArray(j) ? j : j.kept || j.users || [];
+      entries = arr.map((x) => (typeof x === "string" ? { username: x } : x));
+    } catch {
+      entries = text.split(/[\r\n,;]+/).map((x) => x.trim().replace(/^"|"$/g, "").replace(/^@/, "")).filter((x) => x && !/^(username|user|name)$/i.test(x)).map((x) => ({ username: x }));
+    }
+    const byName = new Map();
+    [...users, ...Object.values(keep), ...((lists && lists.following) || []), ...hist].forEach((u) => { if (u && u.username) byName.set(String(u.username).toLowerCase(), u); });
+    let added = 0, missing = 0;
+    entries.forEach((e) => {
+      const found = e.pk ? e : byName.get(String(e.username || "").toLowerCase());
+      if (!found || !found.pk) { missing++; return; }
+      if (keep[found.pk]) return;
+      keep[found.pk] = slimKeep(found);
+      selected.delete(found.pk);
+      added++;
+    });
+    users = users.filter((x) => !keep[x.pk]);
+    saveKeep();
+    saveSel();
+    renderList();
+    toast(`Imported ${added} kept account${added === 1 ? "" : "s"}${missing ? `; ${missing} not found in your saved lists (scan first)` : ""}.`);
+  }
+  $("impKept").onclick = () => $("fileIn").click();
+  $("fileIn").onchange = async () => {
+    const f = $("fileIn").files[0];
+    $("fileIn").value = "";
+    if (f) importKept(await readText(f));
+  };
+
+  // ---------- statistics ----------
+  function renderStats() {
+    listEl.replaceChildren();
+    rows.clear();
+    const fing = scanCache && typeof scanCache.following === "number" ? scanCache.following : lists && lists.following ? lists.following.length : null;
+    const fol = scanCache && typeof scanCache.followers === "number" ? scanCache.followers : lists && lists.followers ? lists.followers.length : null;
+    const now = Date.now(), DAY = 864e5;
+    const rate = lists && lists.followers && fing ? Math.round((mutual.length / fing) * 100) + "%" : "–";
+    const unf7 = hist.filter((h) => now - h.at < 7 * DAY).length;
+    const gained = flw.filter((e) => e.type === "new" && now - e.at < 30 * DAY).length;
+    const lost = flw.filter((e) => e.type === "lost" && now - e.at < 30 * DAY).length;
+    const cards = [
+      [rate, "Follow-back rate", "of the accounts you follow"], [fmtN(fing), "Following", "accounts"],
+      [fmtN(fol), "Followers", "accounts"], [lists && lists.followers ? fmtN(fans.length) : "–", "Fans", "follow you, you don't follow back"],
+      [fmtN(hist.length), "Unfollowed", "all time"], [fmtN(unf7), "Unfollowed", "last 7 days"],
+      [A.followerDiff ? fmtN(gained) : "–", "New followers", "last 30 days"], [A.followerDiff ? fmtN(lost) : "–", "Lost followers", "last 30 days"],
+    ];
+    const wrap = document.createElement("div");
+    wrap.className = "stats2";
+    const grid = document.createElement("div");
+    grid.className = "cards";
+    cards.forEach(([v, l, sub]) => {
+      const d = document.createElement("div");
+      d.className = "card2";
+      const b = document.createElement("b"); b.textContent = v;
+      const s1 = document.createElement("span"); s1.textContent = l;
+      const s2 = document.createElement("small"); s2.textContent = sub;
+      d.append(b, s1, s2);
+      grid.append(d);
+    });
+    const title = document.createElement("div");
+    title.className = "chart-title";
+    title.textContent = "Unfollowed per day (last 14 days)";
+    const bars = document.createElement("div");
+    bars.className = "bars";
+    const days = [];
+    for (let k = 13; k >= 0; k--) { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - k); days.push(d); }
+    const counts = days.map((d) => hist.filter((h) => { const x = new Date(h.at); x.setHours(0, 0, 0, 0); return x.getTime() === d.getTime(); }).length);
+    const max = Math.max(1, ...counts);
+    days.forEach((d, i) => {
+      const col = document.createElement("div");
+      col.className = "bcol";
+      col.title = `${d.toLocaleDateString()}: ${counts[i]}`;
+      const n = document.createElement("span"); n.className = "bn"; n.textContent = counts[i] || "";
+      const bar = document.createElement("i"); bar.style.height = Math.max(counts[i] ? 4 : 2, (counts[i] / max) * 70) + "px";
+      const lab = document.createElement("span"); lab.className = "bl"; lab.textContent = d.getDate();
+      col.append(n, bar, lab);
+      bars.append(col);
+    });
+    wrap.append(grid, title, bars);
+    listEl.append(wrap);
+  }
 
   // ---------- scan ----------
   if (!A.supportsStart) $("startwrap").style.display = "none";
@@ -713,6 +912,7 @@
       });
       if (res.scan.username) $("acct").textContent = " · @" + res.scan.username;
       const diffMsg = await recordFollowerChanges(res);
+      await updateSeen(res);
       if (res.complete) await chrome.storage.local.set({ [allowKey]: false });
       const all = res.scan.users || [];
       users = all.filter((u) => !keep[u.pk]);
@@ -739,12 +939,21 @@
     updateChrome();
     if (wanted > maxSel()) toast(capMsg());
   };
+  const pickable = () => filtered.filter((u) => !protectReason(u));
+  const skippedNote = (n) => { if (n > 0) toast(`${n} protected account${n > 1 ? "s were" : " was"} skipped (verified or recently followed).`); };
   $("selN").onclick = () => {
     todoFirst();
     const n = Math.max(1, parseInt($("n").value, 10) || 30);
-    selectPks(filtered.slice(0, n).map((u) => u.pk), n);
+    const pool = pickable();
+    selectPks(pool.slice(0, n).map((u) => u.pk), n);
+    skippedNote(filtered.length - pool.length);
   };
-  $("all").onclick = () => { todoFirst(); selectPks(filtered.map((u) => u.pk), filtered.length); };
+  $("all").onclick = () => {
+    todoFirst();
+    const pool = pickable();
+    selectPks(pool.map((u) => u.pk), pool.length);
+    skippedNote(filtered.length - pool.length);
+  };
   $("clr").onclick = () => { selected.clear(); syncChecks(); saveSel(); updateChrome(); };
 
   // ---------- progress card ----------
@@ -1040,7 +1249,9 @@
     if (ch.enabled) applyEnabled(!!ch.enabled.newValue);
     if (ch.theme) showTheme(ch.theme.newValue);
     if (ch.position || ch.draggable || ch["fabPos_" + A.id]) loadCfg();
-    if (ch["dailyCap_" + A.id] || ch["nfb_daily_" + dayKey] || ch.cooldownHours || ch.activeEnabled || ch.activeFrom || ch.activeTo) refreshCap();
+    if (ch["dailyCap_" + A.id] || ch["nfb_daily_" + dayKey] || ch["nfb_days_" + dayKey] || ch.cooldownHours || ch.activeEnabled || ch.activeFrom || ch.activeTo ||
+        ch.warmupEnabled || ch.warmupStart || ch.warmupStep) refreshCap();
+    if (ch.protectVerified || ch.protectRecentDays) refreshCap().then(() => { if (tab === "todo") renderList(); });
     if (ch[coolKey]) coolUntil = ch[coolKey].newValue || 0;
     if (ch[scanKey]) scanCache = ch[scanKey].newValue || null;
     if (ch[scanKey] || ch[allowKey]) refreshButtons();
@@ -1055,13 +1266,14 @@
     applyEnabled(!!s.enabled);
     await loadCfg();
     await NFB.bindSettings(shadow, modalHost);
-    const o = await chrome.storage.local.get([scanKey, listsKey, keepKey, selKey, goneKey, histKey, snapKey, flwKey, coolKey, "nfb_opts"]);
+    const o = await chrome.storage.local.get([scanKey, listsKey, keepKey, selKey, goneKey, histKey, snapKey, flwKey, coolKey, seenKey, "nfb_opts"]);
     scanCache = o[scanKey] || null;
     lists = o[listsKey] || null;
     keep = o[keepKey] || {};
     gone = new Set(o[goneKey] || []);
     hist = o[histKey] || [];
     flw = o[flwKey] || [];
+    seen = o[seenKey] || seen;
     coolUntil = o[coolKey] || 0;
     if (scanCache && scanCache.username) $("acct").textContent = " · @" + scanCache.username;
     // first run with this version: use the saved followers list as the baseline for "who unfollowed me"
