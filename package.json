@@ -1,5 +1,5 @@
 {
-  "name": "non-followers",
+  "name": "unfollow-guard-extension",
   "version": "1.6.0",
   "private": true,
   "description": "Chromium extension: see who doesn't follow you back on Instagram & Facebook and unfollow them safely.",

@@ -9,7 +9,7 @@
       <rect width="64" height="64" rx="15" fill="url(#lg)"/>
       <circle cx="25" cy="21" r="9" fill="#fff"/><path d="M7 49a18 18 0 0 1 36 0z" fill="#fff"/>
       <circle cx="46" cy="45" r="12" fill="#ff3b5c" stroke="#6f55d9" stroke-width="3"/><rect x="40" y="43.5" width="12" height="3" rx="1.5" fill="#fff"/></g>
-<text x="244" y="140" font-size="58" font-weight="800" fill="#fff" letter-spacing="-1">Non-Followers</text>
+<text x="244" y="140" font-size="58" font-weight="800" fill="#fff" letter-spacing="-1">Unfollow Guard</text>
 <text x="246" y="186" font-size="24" fill="#fff" opacity=".92">See who doesn't follow you back on Instagram &amp; Facebook,</text>
 <text x="246" y="220" font-size="24" fill="#fff" opacity=".92">and unfollow them safely, a few at a time.</text>
 <g font-size="15" font-weight="700" fill="#fff">

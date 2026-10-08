@@ -142,11 +142,11 @@
     .toast { background: #1f2933; color: #fff; font-size: 13px; padding: 9px 14px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.35); max-width: 380px; }
   </style>
   <div class="app" id="app" data-theme="system">
-    <button class="fab" id="fab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="10" cy="8" r="4"/><path d="M2 21a8 8 0 0 1 16 0"/><path d="M16 12h6"/></svg><span>Non-followers</span></button>
+    <button class="fab" id="fab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="10" cy="8" r="4"/><path d="M2 21a8 8 0 0 1 16 0"/><path d="M16 12h6"/></svg><span>Unfollow Guard</span></button>
 
     <div class="panel" id="panel">
       <div class="head">
-        <div class="brand">${LOGO}<div><div class="title">Non-Followers</div>
+        <div class="brand">${LOGO}<div><div class="title">Unfollow Guard</div>
           <div class="sub">${A.label}${IS_BETA ? ' <span class="badge" title="Facebook support is not fully tested yet">BETA</span>' : ""}<span id="acct"></span></div></div></div>
         <div class="hbtns">
           <button class="iconbtn" id="themeBtn" title="Change theme">◐</button>
@@ -235,7 +235,7 @@
     d.textContent = new Date().toLocaleTimeString() + "  " + t;
     logBox.prepend(d);
     while (logBox.childElementCount > 80) logBox.lastChild.remove();
-    console.log("[Non-Followers]", t);
+    console.log("[Unfollow Guard]", t);
   };
 
   const placeholder = (u) => {
@@ -744,14 +744,14 @@
     const lines = [head.map(csvCell).join(",")].concat(
       items.map((u) => [u.username, u.full_name || "", A.profileUrl(u), ...extra.map((f) => f(u))].map(csvCell).join(","))
     );
-    download(`non-followers-${A.id}-${tab}.csv`, "\ufeff" + lines.join("\r\n"), "text/csv");
+    download(`unfollow-guard-${A.id}-${tab}.csv`, "\ufeff" + lines.join("\r\n"), "text/csv");
     toast(`Exported ${items.length} rows.`);
   };
   $("expJson").onclick = () => {
     const kept = Object.values(keep).map(slimKeep);
     if (!kept.length) return toast("Your kept list is empty.");
-    const data = { app: "non-followers", version: 1, platform: A.id, account: ACCT, exportedAt: new Date().toISOString(), kept };
-    download(`non-followers-${A.id}-kept-backup.json`, JSON.stringify(data, null, 2), "application/json");
+    const data = { app: "unfollow-guard", version: 1, platform: A.id, account: ACCT, exportedAt: new Date().toISOString(), kept };
+    download(`unfollow-guard-${A.id}-kept-backup.json`, JSON.stringify(data, null, 2), "application/json");
     toast(`Backed up ${kept.length} kept accounts.`);
   };
   const readText = (f) => (f.text ? f.text() : new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsText(f); }));

@@ -40,7 +40,7 @@ const users = nonFollowers.filter((u) => !gone.has(u.pk) && !keptUsers.includes(
 function fullStore(theme, extra = {}) {
   const s = {
     igMethodV2: true, theme, allowScan_instagram: true, dailyCap_instagram: 40,
-    ["nfb_scan_instagram_" + ACCT]: { at: now - 5 * 3600e3, followers: ME.followers, following: ME.following, checked: ME.following, range: null, username: "mystic.monk", users: nonFollowers.map(slim) },
+    ["nfb_scan_instagram_" + ACCT]: { at: now - 5 * 3600e3, followers: ME.followers, following: ME.following, checked: ME.following, range: null, username: "demo.account", users: nonFollowers.map(slim) },
     ["nfb_lists_instagram_" + ACCT]: { at: now - 5 * 3600e3, followers: followers.map(slim), following: following.map(slim), followingComplete: true, followersComplete: true },
     ["nfb_keep_instagram_" + ACCT]: Object.fromEntries(keptUsers.map((u) => [u.pk, slim(u)])),
     ["nfb_gone_instagram_" + ACCT]: [...gone],
@@ -50,7 +50,7 @@ function fullStore(theme, extra = {}) {
     ["nfb_seen_instagram_" + ACCT]: { complete: true, m: {} },
     ["nfb_sel_instagram_" + ACCT]: users.slice(0, 3).map((u) => u.pk),
     nfb_accounts: { instagram: [ACCT] },
-    ["nfb_meta_instagram_" + ACCT]: { at: now - 5 * 3600e3, text: `Scanned today · following ${ME.following}, followers ${ME.followers} · ${nonFollowers.length} non-followers`, username: "mystic.monk" },
+    ["nfb_meta_instagram_" + ACCT]: { at: now - 5 * 3600e3, text: `Scanned today · following ${ME.following}, followers ${ME.followers} · ${nonFollowers.length} non-followers`, username: "demo.account" },
     ...extra,
   };
   return s;
@@ -83,7 +83,7 @@ const initScript = (store) => `(() => {
   const J = (b) => ({ ok: true, status: 200, text: async () => JSON.stringify(b), json: async () => b });
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   window.fetch = async (url) => {
-    if (/\\/users\\/\\d+\\/info\\//.test(url)) return J({ user: { follower_count: L.followers.length, following_count: L.following.length, username: "mystic.monk" } });
+    if (/\\/users\\/\\d+\\/info\\//.test(url)) return J({ user: { follower_count: L.followers.length, following_count: L.following.length, username: "demo.account" } });
     if (/\\/following\\//.test(url)) { await wait(900); return J({ users: L.following }); }
     if (/\\/followers\\//.test(url)) { await wait(500); return J({ users: L.followers }); }
     if (/\\/friendships\\/(destroy|create)\\//.test(url)) { await wait(500); return J({ status: "ok", friendship_status: { following: /create/.test(url) } }); }

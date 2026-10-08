@@ -93,7 +93,7 @@ const R = {}; const ok = (n, c, x) => (R[n] = c ? "PASS" : "FAIL " + (x || ""));
   // ---- CSV export + Backup + Import
   tab("todo"); a.click($("expCsv")); await sleep(50);
   const csvBlob = a.w.__downloads.find(b => b.name && b.name.endsWith(".csv"));
-  ok("E1 CSV downloaded with header", csvBlob && csvBlob.name === "non-followers-instagram-todo.csv");
+  ok("E1 CSV downloaded with header", csvBlob && csvBlob.name === "unfollow-guard-instagram-todo.csv");
   a.click(sh.querySelector('.row .btn')); await sleep(60); // keep first row
   tab("keep"); a.click($("expJson")); await sleep(50);
   const js = a.w.__downloads.find(b => b.name && b.name.endsWith(".json"));

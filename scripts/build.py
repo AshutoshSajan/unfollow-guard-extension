@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Builds installable packages into dist/:
 
-  dist/chromium/  + non-followers-chromium.zip   (Chrome, Brave, Edge, Opera: load the folder unpacked)
-  dist/firefox/   + non-followers-firefox.zip    (EXPERIMENTAL, untested: Firefox 128+)
+  dist/chromium/  + unfollow-guard-chromium.zip   (Chrome, Brave, Edge, Opera: load the folder unpacked)
+  dist/firefox/   + unfollow-guard-firefox.zip    (EXPERIMENTAL, untested: Firefox 128+)
 
 Usage:  python3 scripts/build.py
 No dependencies. The Firefox package only differs in its manifest (background script + add-on id).
@@ -43,15 +43,15 @@ def main() -> None:
 
     chromium = DIST / "chromium"
     copy_tree(chromium)
-    zip_dir(chromium, DIST / "non-followers-chromium.zip")
+    zip_dir(chromium, DIST / "unfollow-guard-chromium.zip")
 
     firefox = DIST / "firefox"
     copy_tree(firefox)
     manifest = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
     manifest["background"] = {"scripts": ["background.js"]}          # Firefox has no MV3 service workers
-    manifest["browser_specific_settings"] = {"gecko": {"id": "non-followers@mystic-monk.local", "strict_min_version": "128.0"}}
+    manifest["browser_specific_settings"] = {"gecko": {"id": "unfollow-guard@mystic-monk.local", "strict_min_version": "128.0"}}
     (firefox / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    zip_dir(firefox, DIST / "non-followers-firefox.zip")
+    zip_dir(firefox, DIST / "unfollow-guard-firefox.zip")
 
     print("Built:")
     for f in sorted(DIST.glob("*.zip")):
