@@ -16,9 +16,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Dependencies (if you add build tooling later)
+# Dependencies
 node_modules/
-package-lock.json
+# NOTE: package-lock.json is intentionally COMMITTED (needed for reproducible
+# `npm ci` in CI). Only alternative-manager lockfiles are ignored.
 yarn.lock
 bun.lockb
 

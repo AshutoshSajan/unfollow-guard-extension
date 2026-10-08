@@ -25,7 +25,7 @@ function boot(acct) {
     if (/\/destroy\//.test(url)) { net.destroyCalls++; return j(net.destroy.body, net.destroy.status); }
     return j({});
   };
-  for (const f of ["shared.js", "instagram.js", "facebook.js", "content.js"]) w.eval(fs.readFileSync(dir + f, "utf8"));
+  for (const f of ["shared.js", "i18n.js", "instagram.js", "facebook.js", "content.js"]) w.eval(fs.readFileSync(dir + f, "utf8"));
   const sh = () => w.document.getElementById("nfb-host").shadowRoot;
   const click = el => el.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
   return { w, sh, click };

@@ -14,7 +14,7 @@ import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DIST = ROOT / "dist"
-FILES = ["manifest.json", "background.js", "hook.js", "shared.js", "instagram.js", "facebook.js",
+FILES = ["manifest.json", "background.js", "hook.js", "shared.js", "i18n.js", "instagram.js", "facebook.js",
          "content.js", "popup.html", "popup.js", "LICENSE"]
 DIRS = ["icons"]
 

@@ -1,8 +1,4 @@
 // Shared helpers: settings, storage, dialogs and the styles/forms used by the toolbar popup and the in-page panel.
-// NOTE: the `NFB` namespace and all `nfb_*` storage keys / element ids are the
-// legacy "Non-Followers" identifiers kept DELIBERATELY. Renaming them orphans
-// every existing user's saved scans, keep lists and history. Only user-visible
-// strings use the "Unfollow Guard" name.
 (() => {
   const NFB = (globalThis.NFB = globalThis.NFB || {});
   NFB.adapters = NFB.adapters || {};
@@ -10,6 +6,7 @@
     { id: "instagram", label: "Instagram" },
     { id: "facebook", label: "Facebook", beta: true },
   ];
+  NFB.LANGS = [["auto", "Automatic"], ["en", "English"], ["es", "Español"], ["fr", "Français"], ["de", "Deutsch"], ["pt", "Português"]];
   NFB.DEFAULTS = {
     enabled: true,
     allowScan_instagram: true,
@@ -33,6 +30,14 @@
     warmupStep: 5,
     labelFollowing: "",
     labelUnfollow: "",
+    lang: "auto",
+    notifyEnabled: true,
+    scheduleEnabled: false,
+    scheduleTime: "10:00",
+    scheduleCount: 20,
+    protectPrivate: false,
+    protectPattern: "",
+    protectTagged: true,
   };
   NFB.sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   NFB.rand = (a, b) => a + Math.random() * (b - a);
@@ -212,8 +217,11 @@
   `;
 
   // ---------- dialog (replaces the browser's alert/confirm) ----------
+  let dlgId = 0;
   NFB.dialog = (container, o) =>
     new Promise((resolve) => {
+      const root = container.getRootNode ? container.getRootNode() : document;
+      const prev = root.activeElement || document.activeElement;
       const ov = document.createElement("div");
       ov.className = "overlay";
       const m = document.createElement("div");
@@ -221,6 +229,8 @@
       m.setAttribute("role", "dialog");
       m.setAttribute("aria-modal", "true");
       const h = document.createElement("h3");
+      h.id = "nfb-dlg-" + ++dlgId;
+      m.setAttribute("aria-labelledby", h.id);
       h.textContent = o.title || "";
       const b = document.createElement("div");
       b.className = "mbody";
@@ -228,7 +238,11 @@
       else b.textContent = o.body || "";
       const act = document.createElement("div");
       act.className = "mactions";
-      const done = (v) => { ov.remove(); resolve(v); };
+      const done = (v) => {
+        ov.remove();
+        try { if (prev && prev.focus) prev.focus(); } catch {}
+        resolve(v);
+      };
       if (!o.hideCancel) {
         const c = document.createElement("button");
         c.className = "btn";
@@ -246,11 +260,19 @@
       ov.addEventListener("mousedown", (e) => { if (e.target === ov && !o.hideCancel) done(false); });
       ov.addEventListener("keydown", (e) => {
         e.stopPropagation();
-        if (e.key === "Escape" && !o.hideCancel) done(false);
-        if (e.key === "Enter") { e.preventDefault(); done(true); }
+        if (e.key === "Escape" && !o.hideCancel) { done(false); return; }
+        if (e.key === "Enter" && !/^(BUTTON|TEXTAREA|SELECT)$/.test(e.target.tagName)) { e.preventDefault(); done(true); return; }
+        if (e.key === "Tab") {                                   // keep keyboard focus inside the dialog
+          const f = [...m.querySelectorAll("button, input, select, textarea, a[href]")].filter((x) => !x.disabled);
+          if (!f.length) return;
+          const cur = root.activeElement || document.activeElement;
+          if (e.shiftKey && cur === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+          else if (!e.shiftKey && cur === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+        }
       });
       container.append(ov);
-      ok.focus();
+      const first = o.focusFirst ? m.querySelector("input, select, textarea") : null;
+      (first || ok).focus();
     });
 
   // ---------- settings form ----------
@@ -262,12 +284,15 @@
     <div class="sblock">
       <div class="stitle">General</div>
       ${row("Enable extension", "Turn off to hide the floating button on every site.", sw("enabled"))}
+      ${row("Notifications", "Show a desktop notification when a batch finishes, stops or is blocked.", sw("notifyEnabled"))}
     </div>`;
   const appearance = `
     <div class="sblock">
       <div class="stitle">Appearance</div>
       ${row("Theme", "System follows your device's light/dark setting.",
         `<select class="field ssel" id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select>`)}
+      ${row("Language", "Language of the panel. Settings and technical messages stay in English.",
+        `<select class="field ssel" id="lang">${NFB.LANGS ? NFB.LANGS.map((l) => `<option value="${l[0]}">${l[1]}</option>`).join("") : '<option value="auto">Automatic</option>'}</select>`)}
       ${row("Button position", "Used when dragging is off, or after a reset.",
         `<select class="field ssel" id="position"><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option><option value="top-right">Top right</option><option value="top-left">Top left</option></select>`)}
       ${row("Allow dragging", "Drag the button anywhere. Its spot is remembered per site.", sw("draggable"))}
@@ -296,10 +321,20 @@
       ${row("Active hours", "From and to",
         `<div style="display:flex;gap:6px;align-items:center"><input class="field" type="time" id="activeFrom"> – <input class="field" type="time" id="activeTo"></div>`)}
     </div>`;
+  const schedule = `
+    <div class="sblock">
+      <div class="stitle">Daily schedule</div>
+      ${row("Run a batch automatically", "Once a day, at the time below, if an Instagram tab is open. It shows a 20-second countdown you can cancel, respects every safety setting, and only uses accounts that aren't protected.", sw("scheduleEnabled"))}
+      ${row("Time and size", "Start time (24 h) and how many accounts",
+        `<div style="display:flex;gap:6px;align-items:center"><input class="field" type="time" id="scheduleTime"> <input class="field snum" type="number" id="scheduleCount" min="1" max="100"></div>`)}
+    </div>`;
   const filters = `
     <div class="sblock">
       <div class="stitle">Protection</div>
       ${row("Protect verified accounts", "Select first / Select all skip verified accounts. You can still tick them by hand.", sw("protectVerified"))}
+      ${row("Protect private accounts", "Select first / Select all skip private accounts.", sw("protectPrivate"))}
+      ${row("Protect labelled accounts", "Accounts you gave a label (Friend, Client, …) are skipped by bulk selection.", sw("protectTagged"))}
+      ${row("Protect usernames matching", "Comma-separated patterns; * matches anything, e.g. *_official, shop*", `<input class="field ltext" type="text" id="protectPattern" placeholder="*_official, shop*">`)}
       ${row("Protect recently followed", "Bulk selection skips accounts you started following in the last N days (0 = off). Instagram doesn't share follow dates, so this counts from when the extension first saw them after your first complete scan.",
         `<input class="field snum" type="number" id="protectRecentDays" min="0" max="365">`)}
       ${row("Warm-up mode", "Start with a small daily limit and raise it every day you use the extension, up to your daily cap.", sw("warmupEnabled"))}
@@ -314,7 +349,7 @@
       ${row("“Unfollow” menu label", "", `<input class="field ltext" type="text" id="labelUnfollow" placeholder="e.g. Dejar de seguir">`)}
     </div>`;
   NFB.settingsHTML =
-    `<div id="nfbset">` + general + appearance + method + safety + filters + labels + NFB.PLATFORMS.map(platform).join("") +
+    `<div id="nfbset">` + general + appearance + method + safety + schedule + filters + labels + NFB.PLATFORMS.map(platform).join("") +
     `<div class="sblock"><div class="stitle">Delay between unfollows</div>
        ${row("Random delay (seconds)", "A random value between min and max is used.",
         `<div style="display:flex;gap:6px;align-items:center"><input class="field snum" type="number" id="minDelay" min="10" max="600"> – <input class="field snum" type="number" id="maxDelay" min="10" max="600"></div>`)}
@@ -365,6 +400,14 @@
       $("warmupStep").value = s.warmupStep;
       $("labelFollowing").value = s.labelFollowing || "";
       $("labelUnfollow").value = s.labelUnfollow || "";
+      $("lang").value = s.lang || "auto";
+      $("notifyEnabled").checked = !!s.notifyEnabled;
+      $("scheduleEnabled").checked = !!s.scheduleEnabled;
+      $("scheduleTime").value = s.scheduleTime;
+      $("scheduleCount").value = s.scheduleCount;
+      $("protectPrivate").checked = !!s.protectPrivate;
+      $("protectTagged").checked = !!s.protectTagged;
+      $("protectPattern").value = s.protectPattern || "";
       await refreshInfo();
     };
     const save = async () => {
@@ -394,6 +437,14 @@
       upd.warmupStep = Math.min(50, Math.max(1, parseInt($("warmupStep").value, 10) || 5));
       upd.labelFollowing = $("labelFollowing").value.trim();
       upd.labelUnfollow = $("labelUnfollow").value.trim();
+      upd.lang = $("lang").value;
+      upd.notifyEnabled = $("notifyEnabled").checked;
+      upd.scheduleEnabled = $("scheduleEnabled").checked;
+      upd.scheduleTime = $("scheduleTime").value || "10:00";
+      upd.scheduleCount = Math.min(100, Math.max(1, parseInt($("scheduleCount").value, 10) || 20));
+      upd.protectPrivate = $("protectPrivate").checked;
+      upd.protectTagged = $("protectTagged").checked;
+      upd.protectPattern = $("protectPattern").value.trim();
       await chrome.storage.local.set(upd);
       flash("Saved");
     };

@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Unfollow Guard (Instagram & Facebook)",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "See who doesn't follow you back on Instagram and Facebook and unfollow them slowly in small batches.",
   "permissions": [
     "storage",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "notifications"
   ],
   "icons": {
     "16": "icons/icon16.png",
@@ -42,6 +43,7 @@
       ],
       "js": [
         "shared.js",
+        "i18n.js",
         "instagram.js",
         "facebook.js",
         "content.js"
@@ -51,5 +53,13 @@
   ],
   "background": {
     "service_worker": "background.js"
+  },
+  "commands": {
+    "toggle-panel": {
+      "suggested_key": {
+        "default": "Alt+Shift+N"
+      },
+      "description": "Show or hide the Unfollow Guard panel"
+    }
   }
 }
