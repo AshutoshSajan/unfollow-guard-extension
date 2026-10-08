@@ -26,6 +26,13 @@
     activeEnabled: false,
     activeFrom: "09:00",
     activeTo: "22:00",
+    protectVerified: false,
+    protectRecentDays: 0,
+    warmupEnabled: false,
+    warmupStart: 10,
+    warmupStep: 5,
+    labelFollowing: "",
+    labelUnfollow: "",
   };
   NFB.sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   NFB.rand = (a, b) => a + Math.random() * (b - a);
@@ -74,7 +81,20 @@
     const d = await NFB.getDaily(p);
     d.count++;
     await chrome.storage.local.set({ ["nfb_daily_" + p]: d });
+    // number of different days with at least one unfollow (used by warm-up mode)
+    const dk = "nfb_days_" + p;
+    const days = (await chrome.storage.local.get(dk))[dk] || { n: 0, last: "" };
+    if (days.last !== NFB.today()) { days.n++; days.last = NFB.today(); await chrome.storage.local.set({ [dk]: days }); }
     return d.count;
+  };
+  // Daily limit after warm-up: starts low and grows by `warmupStep` for every earlier day you used it.
+  NFB.effectiveCap = async (p, s, base) => {
+    if (!s.warmupEnabled) return { cap: base, warm: null };
+    const dk = "nfb_days_" + p;
+    const days = (await chrome.storage.local.get(dk))[dk] || { n: 0, last: "" };
+    const before = Math.max(0, days.n - (days.last === NFB.today() ? 1 : 0));
+    const warm = Math.max(1, s.warmupStart + s.warmupStep * before);
+    return { cap: Math.min(base, warm), warm };
   };
 
   // Moves data saved by older versions to the current keys.
@@ -183,6 +203,7 @@
     .stext b { font-weight: 600; }
     .hint { color: var(--fg2); font-size: 12px; margin-top: 3px; line-height: 1.4; font-weight: 400; }
     .snum { width: 64px; text-align: center; }
+    .ltext { width: 170px; }
     .ssel { max-width: 190px; }
     .sbtn { height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--red); background: var(--bg); color: var(--red);
             font-size: 12px; font-weight: 600; cursor: pointer; flex: none; }
@@ -275,8 +296,25 @@
       ${row("Active hours", "From and to",
         `<div style="display:flex;gap:6px;align-items:center"><input class="field" type="time" id="activeFrom"> – <input class="field" type="time" id="activeTo"></div>`)}
     </div>`;
+  const filters = `
+    <div class="sblock">
+      <div class="stitle">Protection</div>
+      ${row("Protect verified accounts", "Select first / Select all skip verified accounts. You can still tick them by hand.", sw("protectVerified"))}
+      ${row("Protect recently followed", "Bulk selection skips accounts you started following in the last N days (0 = off). Instagram doesn't share follow dates, so this counts from when the extension first saw them after your first complete scan.",
+        `<input class="field snum" type="number" id="protectRecentDays" min="0" max="365">`)}
+      ${row("Warm-up mode", "Start with a small daily limit and raise it every day you use the extension, up to your daily cap.", sw("warmupEnabled"))}
+      ${row("Warm-up: start / add per day", "Day 1 limit, then how many are added each day.",
+        `<div style="display:flex;gap:6px;align-items:center"><input class="field snum" type="number" id="warmupStart" min="1" max="100"> + <input class="field snum" type="number" id="warmupStep" min="1" max="50"></div>`)}
+    </div>`;
+  const labels = `
+    <div class="sblock">
+      <div class="stitle">Browser clicks · other languages</div>
+      <div class="hint" style="margin:0 0 4px">Common languages are built in. If the Following or Unfollow button isn't found, type the words your Instagram uses (comma-separated).</div>
+      ${row("“Following” button label", "", `<input class="field ltext" type="text" id="labelFollowing" placeholder="e.g. Siguiendo">`)}
+      ${row("“Unfollow” menu label", "", `<input class="field ltext" type="text" id="labelUnfollow" placeholder="e.g. Dejar de seguir">`)}
+    </div>`;
   NFB.settingsHTML =
-    `<div id="nfbset">` + general + appearance + method + safety + NFB.PLATFORMS.map(platform).join("") +
+    `<div id="nfbset">` + general + appearance + method + safety + filters + labels + NFB.PLATFORMS.map(platform).join("") +
     `<div class="sblock"><div class="stitle">Delay between unfollows</div>
        ${row("Random delay (seconds)", "A random value between min and max is used.",
         `<div style="display:flex;gap:6px;align-items:center"><input class="field snum" type="number" id="minDelay" min="10" max="600"> – <input class="field snum" type="number" id="maxDelay" min="10" max="600"></div>`)}
@@ -320,6 +358,13 @@
       $("activeEnabled").checked = !!s.activeEnabled;
       $("activeFrom").value = s.activeFrom;
       $("activeTo").value = s.activeTo;
+      $("protectVerified").checked = !!s.protectVerified;
+      $("protectRecentDays").value = s.protectRecentDays;
+      $("warmupEnabled").checked = !!s.warmupEnabled;
+      $("warmupStart").value = s.warmupStart;
+      $("warmupStep").value = s.warmupStep;
+      $("labelFollowing").value = s.labelFollowing || "";
+      $("labelUnfollow").value = s.labelUnfollow || "";
       await refreshInfo();
     };
     const save = async () => {
@@ -342,6 +387,13 @@
       upd.activeEnabled = $("activeEnabled").checked;
       upd.activeFrom = $("activeFrom").value || "09:00";
       upd.activeTo = $("activeTo").value || "22:00";
+      upd.protectVerified = $("protectVerified").checked;
+      upd.protectRecentDays = Math.min(365, Math.max(0, parseInt($("protectRecentDays").value, 10) || 0));
+      upd.warmupEnabled = $("warmupEnabled").checked;
+      upd.warmupStart = Math.min(100, Math.max(1, parseInt($("warmupStart").value, 10) || 10));
+      upd.warmupStep = Math.min(50, Math.max(1, parseInt($("warmupStep").value, 10) || 5));
+      upd.labelFollowing = $("labelFollowing").value.trim();
+      upd.labelUnfollow = $("labelUnfollow").value.trim();
       await chrome.storage.local.set(upd);
       flash("Saved");
     };

@@ -7,10 +7,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-0095f6?style=for-the-badge&logo=googlechrome&logoColor=white)](manifest.json)
 [![Chromium 111+](https://img.shields.io/badge/Chromium-111%2B-6a3fc8?style=for-the-badge&logo=brave&logoColor=white)](#-installation)
-[![Version](https://img.shields.io/badge/version-1.5.0-16a34a?style=for-the-badge)](manifest.json)
+[![Version](https://img.shields.io/badge/version-1.6.0-16a34a?style=for-the-badge)](manifest.json)
 [![Facebook: beta](https://img.shields.io/badge/Facebook-BETA-f59e0b?style=for-the-badge&logo=facebook&logoColor=white)](#-facebook-beta)
+[![Firefox: experimental](https://img.shields.io/badge/Firefox-experimental-ff7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white)](#-firefox-experimental)
 
-**[Features](#-features) · [Installation](#-installation) · [Quick start](#-quick-start) · [How it works](#-how-it-works) · [Safety](#-safety--limits) · [Privacy](#-privacy--permissions) · [Troubleshooting](#-troubleshooting)**
+**[Features](#-features) · [Installation](#-installation) · [Quick start](#-quick-start) · [How it works](#-how-it-works) · [Safety](#-safety--limits) · [Privacy](#-privacy--permissions) · [Troubleshooting](#-troubleshooting) · [Development](#-development)**
 
 </div>
 
@@ -25,7 +26,7 @@ It was built for the very common situation of following thousands of accounts wh
 - you decide who goes (and who is **kept** forever),
 - it never selects more than your **daily limit**,
 - every unfollow is spaced out with a **random delay**,
-- and it **stops immediately** when Instagram pushes back.
+- and it **stops immediately**, and cools down, when Instagram pushes back.
 
 > [!WARNING]
 > Automating actions on Instagram or Facebook can go against their terms of service and can lead to temporary action blocks or restrictions. This project is **not affiliated with, endorsed by, or sponsored by Meta, Instagram or Facebook**. Use it at your own risk and read the [safety notes](#-safety--limits) first.
@@ -33,17 +34,31 @@ It was built for the very common situation of following thousands of accounts wh
 ## 🖼 Preview
 
 <div align="center">
+
+<img src="docs/demo.gif" alt="Demo: scan, select, unfollow with the progress card" width="820">
+<br><sub><b>Scan → review → select → unfollow</b>, with live progress at the top of the page.</sub>
+
+<br><br>
+
 <table>
 <tr>
-<td align="center"><img src="docs/panel-light.svg" alt="Panel, light theme" width="360"><br><sub><b>Light theme</b></sub></td>
-<td align="center"><img src="docs/panel-dark.svg" alt="Panel, dark theme" width="360"><br><sub><b>Dark theme</b></sub></td>
+<td align="center"><img src="docs/screenshots/panel-light.png" alt="Panel, light theme" width="380"><br><sub><b>Light theme</b></sub></td>
+<td align="center"><img src="docs/screenshots/panel-dark.png" alt="Panel, dark theme" width="380"><br><sub><b>Dark theme</b></sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screenshots/stats.png" alt="Statistics tab" width="380"><br><sub><b>Stats</b>: follow-back rate and unfollows per day</sub></td>
+<td align="center"><img src="docs/screenshots/changes.png" alt="Changes tab" width="380"><br><sub><b>Changes</b>: who unfollowed you, who followed you</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screenshots/history.png" alt="Unfollowed tab with Re-follow" width="380"><br><sub><b>Unfollowed</b>: history with a Re-follow button</sub></td>
+<td align="center"><img src="docs/screenshots/settings.png" alt="Settings" width="380"><br><sub><b>Settings</b>: safety, themes, positions</sub></td>
 </tr>
 </table>
 
-<img src="docs/progress-light.svg" alt="Progress card shown while unfollowing" width="400">&nbsp;&nbsp;<img src="docs/progress-dark.svg" alt="Progress card, dark theme" width="400">
-<br><sub>The progress card stays at the top of the page while a batch runs: avatar, username, countdown and a Stop button.</sub>
+<img src="docs/screenshots/dialog.png" alt="Confirmation dialog" width="470">&nbsp;&nbsp;<img src="docs/screenshots/progress.png" alt="Progress card" width="470">
+<br><sub>In-app confirmation dialogs (no native browser popups) and the progress card with avatar, username, countdown and Stop.</sub>
 
-<sub><i>Illustrations of the interface. Replace them with real screenshots in <code>docs/</code> whenever you like.</i></sub>
+<sub><i>The screenshots and the GIF are rendered from the real interface with generated demo data. No real accounts appear in them.</i></sub>
 </div>
 
 ## ✨ Features
@@ -52,30 +67,34 @@ It was built for the very common situation of following thousands of accounts wh
 - **One-click scan** that compares your following list with your followers.
 - **Scan only what you need**: the first 50 / 100 / 250 / 500 accounts you follow, or all, with a **"from #"** offset to continue where you stopped.
 - **Accurate by design**: a partial following list is always compared against your *complete* followers (or each account is checked individually when you have a very large audience), so nobody who follows you is ever listed by mistake.
-- **Follower changes**: every full scan is compared with the previous one, so you can see who unfollowed you and who followed you. A follower list that looks incomplete (it doesn't match Instagram's own count) is never compared, so nobody is reported as lost by mistake.
-- **Separate data per account**: scans, kept lists, history and counters are stored for each logged-in account, so switching accounts never mixes them up.
+- **Follower changes**: every full scan is compared with the previous one, so you can see **who unfollowed you** and who followed you. A followers list that looks incomplete (it doesn't match Instagram's own count) is never compared, so nobody is reported as lost by mistake.
 - **Scan lock**: after every scan the button locks itself, so an accidental double-click can't send hundreds of requests. Unlock it deliberately in the settings.
+- **Separate data per account**: scans, kept lists, history and counters are stored for each logged-in account, so switching accounts never mixes them up.
 
 ### 🗂 Everything in tabs
 
 | Tab | What you see |
 | --- | --- |
 | **To unfollow** | Accounts that don't follow you back, with checkboxes. |
-| **Kept** | Accounts you chose never to unfollow. They stay out of every future scan and can be moved back at any time. |
+| **Kept** | Accounts you chose never to unfollow. They stay out of every future scan and can be moved back at any time. **Backup** / **Import** buttons save and restore this list. |
 | **Mutuals** | People you follow who follow you back. |
+| **Fans** | People who follow you that you don't follow. |
 | **Followers** | Everyone who follows you (and whether you follow them back). |
 | **Following** | Everyone you follow (and whether they follow you back). |
-| **Unfollowed** | Your history of accounts unfollowed with the extension, with date and time. |
-| **Changes** *(Instagram)* | **Who unfollowed you** and **who started following you** since your previous scan, with dates. |
+| **Unfollowed** | Your history of accounts unfollowed with the extension, with date and time and a **Re-follow** button (Instagram). |
+| **Changes** *(Instagram)* | **Who unfollowed you** and **who started following you** since your previous scan. |
+| **Stats** | Follow-back rate, totals, new/lost followers over 30 days and a chart of unfollows per day. |
 
-Lists render in chunks, so even thousands of rows stay smooth. There is search on every tab, and the header shows live **Following / Followers / Mutual / To unfollow** counters.
+Lists render in chunks, so even thousands of rows stay smooth. Every tab has search and a **CSV** export button, and the header shows live **Following / Followers / Mutual / To unfollow** counters.
 
 ### 🛡 Unfollow with guard rails
 - **Daily limit** (default 40 on Instagram, 20 on Facebook, max 100): you *can't select more accounts than you have left today*.
+- **Warm-up mode** (optional): start with a small limit and raise it every day you use the extension.
+- **Protection filters** (optional): bulk selection skips **verified** accounts and accounts you **recently started following**.
 - **Random delay** between unfollows (default 20–60 s).
 - **Selections persist** across tab refreshes, browser restarts and reboots.
 - **Keep button** on every row, plus **Keep selected** in bulk.
-- **Time-left chip**: "Next unfollow in 0:48", "Ready to unfollow", or "Daily limit reached · resets in 5h 12m".
+- **Time-left chip**: "Next unfollow in 0:48", "Ready to unfollow", "Daily limit reached · resets in 5h 12m", "Cool-down · 5h left" or "Outside active hours".
 - **Stop button** that works instantly, even between page loads.
 - **Stops by itself** on rate limits, action blocks, logouts, or after three failures in a row.
 - **Cool-down after a block** (default 6 h): if the site blocks or rate-limits an action, unfollowing is paused for hours, even after a browser restart. You can end it early, after a warning.
@@ -88,7 +107,8 @@ Lists render in chunks, so even thousands of rows stay smooth. There is search o
 - **Light, dark or system theme**, switchable from the panel header.
 - **Draggable floating button**, or pin it to any corner from the settings.
 - **On/off switch** in the toolbar popup. The icon shows an `OFF` badge while disabled.
-- Beautiful, responsive layout that opens next to the button and never leaves the screen.
+- **Browser-click method in many languages**: English, Spanish, French, German, Portuguese, Italian, Dutch, Turkish, Indonesian, Russian, Japanese, Korean and Hindi labels are built in; any other language can be added in the settings.
+- Responsive layout that opens next to the button and never leaves the screen.
 
 ## 🚀 Installation
 
@@ -104,12 +124,16 @@ The extension isn't on a store; you load it as an unpacked extension. It works i
 > [!TIP]
 > **Updating:** unzip the new version over the old folder, click the ↻ reload icon on the extension card, then **refresh your Instagram/Facebook tab**. Your saved scans, kept accounts and history stay in place.
 
+### 🦊 Firefox (experimental)
+
+`python3 scripts/build.py` writes `dist/unfollow-guard-firefox.zip`, a package whose manifest uses a background script instead of a service worker and a Gecko add-on id (Firefox **128+**). Load it from `about:debugging` → *This Firefox* → *Load Temporary Add-on*. **This build has not been tested**; please report what you find.
+
 ## 🧭 Quick start
 
 1. **Open the panel**: click the floating **Unfollow Guard** button (drag it wherever it doesn't get in the way).
 2. **Scan**: choose how many accounts to check (for example *first 50*), then press **Scan** and confirm.
-3. **Review**: go through **To unfollow** (and check **Changes** to see who unfollowed you since last time). Press **Keep** on anyone you never want to unfollow, and look at **Mutuals**/**Followers**/**Following** for the full picture.
-4. **Select**: tick accounts by hand, or use **Select first** / **Select all** (limited to what's left of today's limit).
+3. **Review**: go through **To unfollow** (and check **Changes** to see who unfollowed you since last time). Press **Keep** on anyone you never want to unfollow, and look at **Mutuals**, **Fans** and **Stats** for the full picture.
+4. **Select**: tick accounts by hand, or use **Select first** / **Select all** (limited to what's left of today's limit, and skipping protected accounts if you enabled that).
 5. **Unfollow**: press **Unfollow N** and confirm. A progress card appears at the top of the page. Press **Stop** whenever you like.
 6. **Come back tomorrow**: the counter resets at local midnight. To check the next batch, set **from #** to where you stopped, unlock **Allow scanning** in ⚙ Settings, and scan again.
 
@@ -126,7 +150,7 @@ flowchart LR
     D --> F[Compare]
     E --> F
     F --> G[(Saved locally in<br/>the browser)]
-    G --> H[Tabs: To unfollow · Kept · Mutuals ·<br/>Followers · Following · Unfollowed]
+    G --> H[Tabs: To unfollow · Kept · Mutuals · Fans ·<br/>Followers · Following · Unfollowed · Changes · Stats]
 ```
 
 Instagram's web app talks to its own JSON endpoints. The extension reads the same lists, from inside your logged-in session, at a gentle pace (pauses of 1–3 seconds between pages).
@@ -140,7 +164,7 @@ sequenceDiagram
     participant Panel as Unfollow Guard panel
     participant IG as Instagram
     You->>Panel: Select accounts (≤ daily limit) and confirm
-    loop One account every 20-60 s
+    loop One account every 20-60 s (inside active hours)
         Panel->>IG: The same request the website itself sends
         alt Instagram rejects it
             Panel->>IG: Open the profile, click Following, then Unfollow
@@ -148,7 +172,7 @@ sequenceDiagram
         IG-->>Panel: Done
         Panel->>Panel: Update list, history, counters, progress card
     end
-    Note over Panel,IG: Rate limit, block, logout or 3 failures in a row: the batch stops
+    Note over Panel,IG: Block or rate limit: the batch stops and a cool-down starts
 ```
 
 Two unfollow methods are available (⚙ Settings → *Instagram unfollow method*):
@@ -156,7 +180,7 @@ Two unfollow methods are available (⚙ Settings → *Instagram unfollow method*
 | Method | How it works | When to use it |
 | --- | --- | --- |
 | **Direct API** *(default)* | Sends the same request Instagram's own page sends, including the page's current security tokens, which a tiny script (`hook.js`) copies from the site's own requests. | Fast and quiet. If Instagram rejects it, the batch **automatically switches to Browser clicks** and says so in the log. |
-| **Browser clicks** | Opens each profile and clicks **Following → Unfollow** like a person. The page reloads for each account and the batch resumes by itself. | Most robust. Requires Instagram's interface language to be **English** and the tab to stay open. |
+| **Browser clicks** | Opens each profile and clicks **Following → Unfollow** like a person. The page reloads for each account and the batch resumes by itself. | Most robust. The tab has to stay open. Button labels are matched in many languages; add your own in the settings if needed. |
 
 ### Resilience
 - A batch **survives page reloads** and continues in the same tab. If the tab is closed for more than 5 minutes, the batch is abandoned rather than resuming unexpectedly.
@@ -177,6 +201,10 @@ Open them from the **⚙** button in the panel or from the toolbar popup.
 | **Cool-down after a block** | 6 h | Pause unfollowing for this many hours after a block or rate limit (0 = off). |
 | **Only unfollow during active hours** | Off | A batch waits until the window opens (your local time). |
 | **Active hours** | 09:00 – 22:00 | The allowed window, used when the switch above is on. |
+| **Protect verified accounts** | Off | Select first / Select all skip verified accounts. |
+| **Protect recently followed** | 0 days (off) | Bulk selection skips accounts the extension first saw you following in the last N days. Instagram doesn't share follow dates, so this counts from your first complete scan. |
+| **Warm-up mode** | Off | Starts at *start* per day and adds *step* for every day you used the extension, up to your cap (defaults 10 and +5). |
+| **Browser-click labels** | empty | Extra words for the "Following" button and "Unfollow" menu item, for languages that aren't built in. |
 | **Allow scanning** *(per site)* | On → locks after a scan | Unlock to scan again. |
 | **Daily unfollow cap** *(per site)* | 40 / 20 | 1–100 unfollows per day. Also limits how many accounts you can select. |
 | **Delay between unfollows** | 20–60 s | A random value in this range is used each time. |
@@ -186,18 +214,18 @@ Open them from the **⚙** button in the panel or from the toolbar popup.
 
 The defaults are deliberately conservative. A few suggestions:
 
-- **Start small.** A first batch of 10–20 accounts shows you how your account reacts.
+- **Start small.** A first batch of 10–20 accounts shows you how your account reacts. Warm-up mode does this automatically.
 - **Stay at or below ~40 a day** on Instagram. Many more can trigger temporary blocks.
-- **Don't run it all day.** Do a batch, then use Instagram normally.
-- **If you see a block message**, stop for a day or two. The extension already stops on its own and tells you why.
-- **Keep your real friends safe**: use **Keep** liberally, and check **Mutuals** and **Followers**.
+- **Don't run it all day.** Do a batch, then use Instagram normally, or set active hours.
+- **If you see a block message**, stop for a day or two. The extension already stops on its own, starts a cool-down and tells you why.
+- **Keep your real friends safe**: use **Keep** liberally, and check **Mutuals** and **Fans**.
 - **Facebook is stricter**; keep its limit low (see [Facebook beta](#-facebook-beta)).
 
 At the default 40 a day, clearing about 3,000 accounts takes around 75 days. That is the point: it is slow *on purpose*.
 
 ## 🔒 Privacy & permissions
 
-Everything stays **on your computer**, stored separately for each Instagram/Facebook account you use. The extension has no server, no analytics and no accounts, and it never sends your data anywhere except to Instagram/Facebook themselves, as part of the actions you ask for.
+Everything stays **on your computer**, stored separately for each Instagram/Facebook account you use. The extension has no server, no analytics and no accounts, and it never sends your data anywhere except to Instagram/Facebook themselves, as part of the actions you ask for. Exports (CSV, Backup) are plain files you save yourself.
 
 | Permission | Why it is needed |
 | --- | --- |
@@ -206,7 +234,7 @@ Everything stays **on your computer**, stored separately for each Instagram/Face
 
 **About `hook.js`:** on Instagram a small script runs inside the page and *only observes* the site's own API requests to remember a few header values and the page token that the site itself uses (for example `x-ig-www-claim`, `fb_dtsg`). These values stay in the page and are used only to make the unfollow request look exactly like the site's own. They are never stored in your settings and never leave your browser.
 
-You can inspect all of the code. There is no build step, no minification and no third-party dependency.
+You can inspect all of the code. There is no build step, no minification and no third-party dependency in the extension itself.
 
 ## 🧪 Facebook (beta)
 
@@ -220,7 +248,7 @@ Notes:
 - Your **Followers** list only exists if *Who can follow me* is set to **Public** in your Facebook privacy settings.
 - The "non-followers" list **includes Pages and public figures** you follow, since they never follow back. Review it before selecting.
 - Facebook changes its page structure often; the page-matching code lives in [`facebook.js`](facebook.js) so it is easy to adjust. Text matching assumes an **English** interface.
-- The default daily limit is **20**.
+- The default daily limit is **20**. The Changes tab and Re-follow are Instagram-only.
 
 If something doesn't work, the **Activity log** and the browser console (`F12`) explain what the extension saw.
 
@@ -267,7 +295,7 @@ The batch switches to Browser clicks automatically. If you want to avoid the att
 <details>
 <summary><b>Browser clicks can't find the Following button</b></summary>
 
-Instagram must be set to **English**. The error message lists the buttons it saw on the profile, which helps when Instagram changes its interface. Also make sure the account still exists and you actually follow it.
+Many languages are built in. If yours isn't, the error message lists the buttons it saw on the profile; copy the words for **Following** and **Unfollow** into ⚙ Settings → *Browser clicks · other languages*. Also make sure the account still exists and you actually follow it.
 </details>
 
 <details>
@@ -277,7 +305,7 @@ Instagram's image links expire after a few days. Scan again to refresh them. Nam
 </details>
 
 <details>
-<summary><b>Mutuals / Followers tabs are empty</b></summary>
+<summary><b>Mutuals / Fans / Followers tabs are empty</b></summary>
 
 Those lists are filled by a scan. If you have more than 2,000 followers and scanned a limited range, followers aren't fetched (each account is checked individually instead). Use **Check → all** for the full lists.
 </details>
@@ -286,57 +314,70 @@ Those lists are filled by a scan. If you have more than 2,000 followers and scan
 
 ```text
 .
-├── manifest.json        # Manifest V3 definition, permissions and content scripts
-├── background.js        # Service worker: shows the OFF badge on the toolbar icon
-├── hook.js              # Runs in the Instagram page (MAIN world): observes the site's own request headers/tokens
-├── shared.js            # Settings, storage helpers, dialogs, theme + shared styles and the settings form
-├── instagram.js         # Instagram adapter: scan, direct API unfollow, browser-click unfollow
-├── facebook.js          # Facebook adapter (beta): collect lists by scrolling, unfollow by clicking
-├── content.js           # The panel UI: tabs, lists, selection, keep, progress card, resumable batch loop
-├── popup.html / popup.js# Toolbar popup: enable switch and settings
-├── icons/               # Extension icons (PNG + SVG source)
-├── docs/                # README artwork
-├── LICENSE              # MIT
+├── manifest.json            # Manifest V3 definition, permissions and content scripts
+├── background.js            # Service worker: shows the OFF badge on the toolbar icon
+├── hook.js                  # Runs in the Instagram page (MAIN world): observes the site's own request headers/tokens
+├── shared.js                # Settings, storage helpers, dialogs, theme + shared styles and the settings form
+├── instagram.js             # Instagram adapter: scan, direct API unfollow/follow, browser-click unfollow (multi-language)
+├── facebook.js              # Facebook adapter (beta): collect lists by scrolling, unfollow by clicking
+├── content.js               # The panel UI: tabs, lists, selection, keep, stats, progress card, resumable batch loop
+├── popup.html / popup.js    # Toolbar popup: enable switch and settings
+├── icons/                   # Extension icons (PNG + SVG source)
+├── docs/                    # README artwork: banner, real screenshots, demo GIF
+├── scripts/
+│   ├── build.py             # Builds the Chromium and (experimental) Firefox packages into dist/
+│   └── screenshots/         # Renders the screenshots and GIF from the real UI with demo data
+├── tests/                   # Automated tests (jsdom): features, unfollow flows, languages, popup
+├── LICENSE                  # MIT
 └── README.md
 ```
 
-Each site is an **adapter** that exposes the same small interface (`scan`, `unfollow`, `canScan`, `navigateTo`, …), so supporting another site means adding one file and registering it, with no changes to the UI.
+Each site is an **adapter** that exposes the same small interface (`scan`, `unfollow`, `follow`, `canScan`, `navigateTo`, `accountId`, …), so supporting another site means adding one file and registering it, with no changes to the UI.
 
 ## 🛠 Development
 
-There is **no build step**: edit the files and reload.
+The extension has **no build step**: edit the files and reload. Dev tooling (tests, screenshots) is optional.
 
 ```bash
-# 1. edit any file
-# 2. chrome://extensions  →  ↻ reload the extension
-# 3. refresh the Instagram / Facebook tab
+# run the extension from source
+#   1. edit any file
+#   2. chrome://extensions  →  ↻ reload the extension
+#   3. refresh the Instagram / Facebook tab
 
-# quick syntax check of every script
-for f in shared instagram facebook content popup background hook; do node --check $f.js; done
+npm install          # dev tools only: jsdom, puppeteer-core, @sparticuz/chromium
+npm test             # runs the automated tests (simulated browser, no network)
+npm run build        # dist/unfollow-guard-chromium.zip and ...-firefox.zip
+npm run screenshots  # re-renders docs/screenshots and docs/demo.gif (needs pillow: pip install pillow)
 ```
 
 Tips:
 - Console messages are prefixed with `[Unfollow Guard]`.
-- All data lives in `chrome.storage.local`. Inspect it from the extension's service-worker console with `chrome.storage.local.get(null, console.log)`.
+- All data lives in `chrome.storage.local`, under keys like `nfb_<name>_<site>_<accountId>`. Inspect it from the extension's service-worker console with `chrome.storage.local.get(null, console.log)`.
 - Avoid naming top-level variables in extension pages after window properties (`top`, `name`, `status`…); they can stop a script from running.
+- The tests cover the panel, scanning, follower changes, cool-down, active hours, warm-up, protection filters, re-follow, export/import and the browser-click method in several languages. They run against a simulated browser, **not** against live Instagram or Facebook, which have no test environment.
 
 ## 🗺 Roadmap
 
 - [x] Separate data for each logged-in account
 - [x] **Changes** tab: who unfollowed you / who followed you
 - [x] Cool-down after a block, and optional active hours
-- [ ] Re-follow button on the **Unfollowed** tab
-- [ ] Export / import the kept list and history (CSV / JSON)
-- [ ] Localized button matching for Browser clicks
-- [ ] Firefox build
-- [ ] Optional "verified accounts" and "recently followed" safety filters
-- [ ] Warm-up mode (raise the daily limit gradually)
-- [ ] **Fans** tab (people who follow you that you don't follow) and simple statistics
-- [ ] Real screenshots and a short demo video
+- [x] Re-follow button on the **Unfollowed** tab
+- [x] Export (CSV, Backup) and import of the kept list
+- [x] Browser clicks in many languages, plus custom labels
+- [x] Verified-account and recently-followed protection
+- [x] Warm-up mode
+- [x] **Fans** tab and statistics
+- [x] Real screenshots and a demo GIF
+- [x] Firefox package *(experimental, untested)*
+- [ ] Verify the Firefox build and the Facebook adapter against real accounts over time
+- [ ] Translate the extension's own interface
+- [ ] Scheduled daily batch while the browser is open
+- [ ] Keyboard shortcuts and a first-run walkthrough
+- [ ] Selector self-check (a diagnostic that reports which page elements it can still find)
 
 ## 🤝 Contributing
 
-Issues and pull requests are welcome. For larger changes, please open an issue first to discuss what you'd like to change. Keep the guard rails (daily limit, delays, stop-on-block) intact; they are the point of the project.
+Issues and pull requests are welcome. For larger changes, please open an issue first to discuss what you'd like to change. Keep the guard rails (daily limit, delays, stop-on-block) intact; they are the point of the project. Please run `npm test` before opening a pull request.
 
 ## ⚠️ Disclaimer
 
