@@ -9,7 +9,7 @@
   const scanKey = K("scan"), listsKey = K("lists"), keepKey = K("keep"), selKey = K("sel"),
         goneKey = K("gone"), histKey = K("hist"), runKey = K("run"), stopKey = K("stop"),
         snapKey = K("snap"), flwKey = K("flw"), coolKey = K("cool"), metaKey = K("meta"), seenKey = K("seen"),
-        tagsKey = K("tags"), schedKey = K("sched");
+        tagsKey = K("tags"), schedKey = K("sched"), picsKey = K("pics");
   const allowKey = "allowScan_" + A.id;
   const IS_BETA = !!(NFB.PLATFORMS.find((p) => p.id === A.id) || {}).beta;
 
@@ -295,16 +295,102 @@
     d.textContent = ((u && u.username) || "?").trim().charAt(0).toUpperCase();
     return d;
   };
+  // ---------- profile pictures ----------
+  // Instagram picture links expire after a few days and can be blocked by the page's security rules or a
+  // privacy shield. A picture is therefore loaded in steps: directly, then through the extension's background
+  // worker, then (Instagram) with a freshly requested link. Only if all fail is a letter shown.
+  const picCache = new Map();       // url -> data URL, this session
+  let picFresh = {};                // pk -> refreshed url (saved)
+  const expiredUrl = (url) => { const m = /[?&]oe=([0-9a-f]+)/i.exec(url || ""); return !!m && parseInt(m[1], 16) * 1000 < Date.now(); };
+  const loadImg = (img, src) => new Promise((res) => {
+    const timer = setTimeout(() => res(false), 8000);
+    img.onload = () => { clearTimeout(timer); res(true); };
+    img.onerror = () => { clearTimeout(timer); res(false); };
+    img.src = src;
+  });
+
+  const bgQueue = []; let bgActive = 0;
+  const fetchViaBg = (url) => new Promise((res) => {
+    try { chrome.runtime.sendMessage({ type: "fetch-image", url }, (r) => { void chrome.runtime.lastError; res(r && r.ok ? r.data : null); }); } catch { res(null); }
+  });
+  function pumpBg() {
+    while (bgActive < 4 && bgQueue.length) {
+      const job = bgQueue.shift();
+      bgActive++;
+      fetchViaBg(job.url).then((d) => {
+        if (d) { if (picCache.size > 400) picCache.delete(picCache.keys().next().value); picCache.set(job.url, d); }
+        job.resolve(d);
+      }).finally(() => { bgActive--; pumpBg(); });
+    }
+  }
+  const viaExtension = (url) => (picCache.has(url) ? Promise.resolve(picCache.get(url)) : new Promise((resolve) => { bgQueue.push({ url, resolve }); pumpBg(); }));
+
+  // Asks the site for a fresh picture link, slowly (about one a second), at most 80 per page load, and
+  // stops for the rest of the page load if the site answers with a limit or block.
+  let refreshBudget = 80, refreshDead = false, refreshBusy = false;
+  const refreshQ = [], refreshing = new Map();
+  function refreshPic(u) {
+    if (!A.refreshPic || refreshDead || refreshBudget <= 0) return Promise.resolve(null);
+    if (refreshing.has(u.pk)) return refreshing.get(u.pk);
+    const p = new Promise((resolve) => { refreshQ.push({ u, resolve }); pumpRefresh(); });
+    refreshing.set(u.pk, p);
+    return p;
+  }
+  async function pumpRefresh() {
+    if (refreshBusy) return;
+    refreshBusy = true;
+    while (refreshQ.length) {
+      const { u, resolve } = refreshQ.shift();
+      if (refreshDead || refreshBudget <= 0) { resolve(null); continue; }
+      refreshBudget--;
+      let url = null;
+      try { url = await A.refreshPic(u); } catch (e) { if (e && e.fatal) refreshDead = true; }
+      resolve(url);
+      await NFB.sleep(NFB.rand(900, 1600));
+    }
+    refreshBusy = false;
+  }
+  let picT;
+  const savePics = () => { clearTimeout(picT); picT = setTimeout(() => chrome.storage.local.set({ [picsKey]: picFresh }), 800); };
+
+  async function loadAvatar(img, u) {
+    const attempt = async (url) => {
+      if (!url) return false;
+      if (/^data:/.test(url)) return loadImg(img, url);
+      if (expiredUrl(url)) return false;                       // known to be dead: don't even try
+      if (await loadImg(img, url)) return true;
+      const d = await viaExtension(url);
+      return !!d && (await loadImg(img, d));
+    };
+    const url = picFresh[u.pk] || u.pic;
+    if (await attempt(url)) return;
+    const fresh = await refreshPic(u);
+    if (fresh && fresh !== url && (await attempt(fresh))) { picFresh[u.pk] = fresh; savePics(); return; }
+    img.replaceWith(placeholder(u));
+  }
   const avatarEl = (u) => {
-    if (!u || !u.pic) return placeholder(u);
+    if (!u || !(u.pic || picFresh[u.pk])) return placeholder(u);
     const img = new Image();
     img.className = "av";
     img.alt = "";
     img.decoding = "async";
-    img.src = u.pic;
-    img.onerror = () => img.replaceWith(placeholder(u));
+    loadAvatar(img, u);
     return img;
   };
+  async function picCheck() {
+    const u = users.find((x) => x.pic) || ((lists && lists.following) || []).find((x) => x.pic);
+    if (!u) return [{ ok: null, name: "Profile pictures", detail: "none saved yet: run a scan" }];
+    const url = picFresh[u.pk] || u.pic;
+    const out = [];
+    const exp = expiredUrl(url);
+    out.push({ ok: !exp, name: "Picture link", detail: exp ? "expired (links last a few days): refreshed automatically, or scan again" : "not expired" });
+    const test = (src) => loadImg(new Image(), src);
+    out.push({ ok: await test(url), name: "Picture loads directly in the page", detail: "" });
+    const d = await viaExtension(url);
+    out.push({ ok: !!d, name: "Picture loads through the extension", detail: d ? "" : "blocked, expired or unavailable" });
+    out.push({ ok: A.refreshPic ? true : null, name: "Expired links can be refreshed", detail: A.refreshPic ? `up to ${refreshBudget} more this page load` : "not supported on this site" });
+    return out;
+  }
 
   // ---------- header buttons: settings / theme / close / help ----------
   let inSettings = false;
@@ -1499,6 +1585,7 @@
   async function selfCheck() {
     let res;
     try { res = A.diagnose ? await A.diagnose(safety) : []; } catch (e) { res = [{ ok: false, name: "Self-check", detail: e.message }]; }
+    try { res = res.concat(await picCheck()); } catch {}
     const lines = res.map((r) => `${r.ok === true ? "✓" : r.ok === false ? "✗" : "•"} ${r.name}${r.detail ? " — " + r.detail : ""}`);
     const body = document.createElement("pre");
     body.style.cssText = "white-space:pre-wrap;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace;margin:0;max-height:280px;overflow:auto;color:var(--fg)";
@@ -1564,7 +1651,7 @@
     applyEnabled(!!s.enabled);
     await loadCfg();
     await NFB.bindSettings(shadow, modalHost);
-    const o = await chrome.storage.local.get([scanKey, listsKey, keepKey, selKey, goneKey, histKey, snapKey, flwKey, coolKey, seenKey, tagsKey, "nfb_opts", "nfb_onboarded"]);
+    const o = await chrome.storage.local.get([scanKey, listsKey, keepKey, selKey, goneKey, histKey, snapKey, flwKey, coolKey, seenKey, tagsKey, picsKey, "nfb_opts", "nfb_onboarded"]);
     scanCache = o[scanKey] || null;
     lists = o[listsKey] || null;
     keep = o[keepKey] || {};
@@ -1573,6 +1660,7 @@
     flw = o[flwKey] || [];
     seen = o[seenKey] || seen;
     tags = o[tagsKey] || {};
+    picFresh = o[picsKey] || {};
     onboarded = !!o.nfb_onboarded;
     coolUntil = o[coolKey] || 0;
     if (scanCache && scanCache.username) $("acct").textContent = " · @" + scanCache.username;

@@ -331,6 +331,14 @@
     // "api" sends the same request the site does; "ui" opens the profile and clicks Following → Unfollow.
     navigateTo: (u, s) => (s && s.igMethod === "ui" ? `https://www.instagram.com/${u.username}/` : null),
     unfollow: (u, s) => (s && s.igMethod === "ui" ? unfollowViaUI(u, s) : unfollowViaApi(u)),
+    // A fresh picture link for one account (the saved links expire after a few days).
+    async refreshPic(u) {
+      const r = await fetch(`/api/v1/users/${u.pk}/info/`, { headers: hdrs(), credentials: "include" });
+      if (r.status === 429 || r.status === 403 || r.status === 401) { const e = new Error("HTTP " + r.status); e.fatal = true; throw e; }
+      if (!r.ok) return null;
+      const j = await r.json();
+      return (j.user && j.user.profile_pic_url) || null;
+    },
     follow: (u) => friendshipApi("create", u),
 
     // Self-check: reports what the extension can currently see on this page (shown in the panel's log area).

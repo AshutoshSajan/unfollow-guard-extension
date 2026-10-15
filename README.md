@@ -4,13 +4,16 @@
 
 <br>
 
+**Clean up who you follow, safely.**
+
+<br>
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-0095f6?style=for-the-badge&logo=googlechrome&logoColor=white)](manifest.json)
 [![Chromium 111+](https://img.shields.io/badge/Chromium-111%2B-6a3fc8?style=for-the-badge&logo=brave&logoColor=white)](#-installation)
-[![Version](https://img.shields.io/badge/version-1.7.0-16a34a?style=for-the-badge)](manifest.json)
+[![Version](https://img.shields.io/badge/version-1.7.1-16a34a?style=for-the-badge)](manifest.json)
 [![Facebook: beta](https://img.shields.io/badge/Facebook-BETA-f59e0b?style=for-the-badge&logo=facebook&logoColor=white)](#-facebook-beta)
 [![Firefox: experimental](https://img.shields.io/badge/Firefox-experimental-ff7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white)](#-firefox-experimental)
-[![CI](https://github.com/AshutoshSajan/unfollow-guard-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/AshutoshSajan/unfollow-guard-extension/actions)
 
 **[Features](#-features) · [Installation](#-installation) · [Quick start](#-quick-start) · [How it works](#-how-it-works) · [Safety](#-safety--limits) · [Privacy](#-privacy--permissions) · [Troubleshooting](#-troubleshooting) · [Development](#-development)**
 
@@ -116,6 +119,7 @@ Lists render in chunks, so even thousands of rows stay smooth. Every tab has sea
 
 ### 🎨 Polished experience
 - Custom in-page dialogs (no native browser popups), with keyboard focus kept inside and returned afterwards.
+- **Profile pictures that recover**: a picture is loaded directly, then through the extension if the page blocks it, then with a freshly requested link if the saved one has expired (slowly, and never more than 80 lookups per page load). Only if all of that fails is a letter shown.
 - **Five interface languages**: English, Español, Français, Deutsch and Português, chosen automatically from your browser or set in the settings. The Settings screen, the Stats screen and technical messages stay in English.
 - **Desktop notifications** when a batch finishes, stops or is blocked (optional), and a **toolbar badge** with today's count (`OFF` when disabled, `COOL` during a cool-down).
 - **Daily schedule** (optional): runs one batch a day at the time you choose while an Instagram tab is open, after a 20-second countdown you can cancel.
@@ -255,6 +259,7 @@ Everything stays **on your computer**, stored separately for each Instagram/Face
 | --- | --- |
 | `storage` / `unlimitedStorage` | Saves your scans, kept list, selection, history and settings in the browser's local extension storage. Big lists can take a few MB. |
 | `notifications` | Optional desktop notifications (can be turned off in the settings). |
+| Access to `cdninstagram.com`, `fbcdn.net` | Lets the background worker load a profile picture when the page itself can't. It only accepts those picture hosts, only images, sends no cookies, and is never used as a general proxy. |
 | Access to `instagram.com`, `facebook.com` | Required to show the panel and talk to those sites from your logged-in session. |
 
 **About `hook.js`:** on Instagram a small script runs inside the page and *only observes* the site's own API requests to remember a few header values and the page token that the site itself uses (for example `x-ig-www-claim`, `fb_dtsg`). These values stay in the page and are used only to make the unfollow request look exactly like the site's own. They are never stored in your settings and never leave your browser.
@@ -342,9 +347,9 @@ Open the panel, expand **Activity log**, press **Self-check** and then **Copy de
 </details>
 
 <details>
-<summary><b>Profile pictures show a letter instead</b></summary>
+<summary><b>Profile pictures show a letter (or are broken)</b></summary>
 
-Instagram's image links expire after a few days. Scan again to refresh them. Names and actions are unaffected.
+Instagram's picture links expire after a few days and can be blocked by the page's security rules or a privacy shield. The panel already retries through the extension and asks Instagram for a fresh link (slowly, a limited number per page load), so letters should be rare and fill in as you scroll. If you still see many, open the panel, expand **Activity log**, press **Self-check** and look at the *Picture* lines: they show whether the link is expired, whether it loads directly, and whether it loads through the extension. A **Scan** refreshes every link at once. After updating from an older version, reload the extension so it can use the new picture permission; names and actions never depend on pictures.
 </details>
 
 <details>
@@ -360,6 +365,7 @@ Those lists are filled by a scan. If you have more than 2,000 followers and scan
 - **Translations** (Spanish, French, German, Portuguese) were written without review by native speakers; corrections are welcome. The button words used by *Browser clicks* for other languages are best effort and can be overridden in the settings.
 - **"Recently followed"** is an approximation (Instagram doesn't expose follow dates). An "accounts you've interacted with" rule isn't possible for the same reason.
 - **The daily schedule** only works while a tab is open; the browser can't start unfollowing by itself.
+- **Firefox** may ask you to grant the picture-host access (`cdninstagram.com`, `fbcdn.net`) separately; pictures still load without it, just without the extension fallback.
 - **Private / no-picture filters** need data from a scan made with this version; accounts from older scans have no such flags until you scan again.
 
 ## 📁 Project structure
@@ -400,7 +406,6 @@ The extension has **no build step**: edit the files and reload. Dev tooling (tes
 
 npm install          # dev tools only: jsdom, puppeteer-core, @sparticuz/chromium
 npm test             # runs the automated tests (simulated browser, no network)
-npm run check-brand  # fails if the old product name reappears (also enforced by CI on every push/PR)
 npm run build        # dist/unfollow-guard-chromium.zip and ...-firefox.zip
 npm run screenshots  # re-renders docs/screenshots and docs/demo.gif (needs pillow: pip install pillow)
 ```
