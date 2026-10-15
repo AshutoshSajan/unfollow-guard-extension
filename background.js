@@ -30,3 +30,28 @@ chrome.commands.onCommand.addListener(async (cmd) => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (tab && tab.id != null) chrome.tabs.sendMessage(tab.id, { type: "toggle-panel" }).catch(() => {});
 });
+
+// Loads a profile picture for the page (the page itself may be blocked from loading it). Only picture hosts of
+// Instagram and Facebook are allowed, only images, and only small ones; no cookies are sent.
+const PIC_HOST = /(^|\.)(cdninstagram\.com|fbcdn\.net)$/i;
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (!msg || msg.type !== "fetch-image") return false;
+  (async () => {
+    try {
+      const u = new URL(String(msg.url));
+      if (u.protocol !== "https:" || !PIC_HOST.test(u.hostname)) return sendResponse({ ok: false });
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 8000);
+      const res = await fetch(u.href, { credentials: "omit", referrerPolicy: "no-referrer", signal: ctl.signal });
+      clearTimeout(timer);
+      const type = res.headers.get("content-type") || "";
+      if (!res.ok || !/^image\//i.test(type)) return sendResponse({ ok: false });
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      if (bytes.length > 600000) return sendResponse({ ok: false });
+      let bin = "";
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      sendResponse({ ok: true, data: `data:${type.split(";")[0]};base64,${btoa(bin)}` });
+    } catch { sendResponse({ ok: false }); }
+  })();
+  return true; // the answer is sent asynchronously
+});

@@ -195,7 +195,7 @@ const seed = (acct, users, extra = {}) => {
     const ctx = { console, chrome: {
       storage: { local: { get: async (k) => { const o = {}; (Array.isArray(k) ? k : [k]).forEach((x) => { if (x in bgStore) o[x] = bgStore[x]; }); return o; } }, onChanged: { addListener: (f) => (handlers.changed = f) } },
       action: { setBadgeText: async (o) => calls.badge.push(["text", o.text]), setBadgeBackgroundColor: async (o) => calls.badge.push(["color", o.color]) },
-      runtime: { onInstalled: { addListener() {} }, onStartup: { addListener() {} }, onMessage: { addListener: (f) => (handlers.msg = f) } },
+      runtime: { onInstalled: { addListener() {} }, onStartup: { addListener() {} }, onMessage: { addListener: (f) => (handlers.msgs = (handlers.msgs || []).concat(f)) } },
       notifications: { create: (o) => calls.notif.push(o) },
       commands: { onCommand: { addListener: (f) => (handlers.cmd = f) } },
       tabs: { query: async () => [{ id: 7 }], sendMessage: async (id, m) => calls.tabs.push([id, m]) },
@@ -205,8 +205,8 @@ const seed = (acct, users, extra = {}) => {
     calls.badge.length = 0; bgStore.nfb_status = { used: 12, running: false, cool: true }; handlers.changed({ nfb_status: {} }); await sleep(30);
     ok("BG2 cool-down badge", calls.badge.some((c) => c[1] === "COOL"));
     bgStore.enabled = false; handlers.changed({ enabled: {} }); await sleep(30); ok("BG3 OFF badge", calls.badge.some((c) => c[1] === "OFF"));
-    handlers.msg({ type: "notify", title: "T", message: "M" }); await sleep(30); ok("BG4 notification created", calls.notif.length === 1 && calls.notif[0].title === "T");
-    bgStore.notifyEnabled = false; handlers.msg({ type: "notify", title: "T2", message: "M" }); await sleep(30); ok("BG5 notifications can be turned off", calls.notif.length === 1);
+    handlers.msgs.forEach((h) => h({ type: "notify", title: "T", message: "M" })); await sleep(30); ok("BG4 notification created", calls.notif.length === 1 && calls.notif[0].title === "T");
+    bgStore.notifyEnabled = false; handlers.msgs.forEach((h) => h({ type: "notify", title: "T2", message: "M" })); await sleep(30); ok("BG5 notifications can be turned off", calls.notif.length === 1);
     await handlers.cmd("toggle-panel"); ok("BG6 shortcut messages the active tab", calls.tabs.length === 1 && calls.tabs[0][0] === 7 && calls.tabs[0][1].type === "toggle-panel");
   }
 

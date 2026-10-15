@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Unfollow Guard (Instagram & Facebook)",
-  "version": "1.7.0",
-  "description": "See who doesn't follow you back on Instagram and Facebook and unfollow them slowly in small batches.",
+  "name": "Unfollow Guard",
+  "version": "1.7.1",
+  "description": "See who doesn't follow you back and unfollow safely, slowly and in small batches. Works with Instagram and Facebook.",
   "permissions": [
     "storage",
     "unlimitedStorage",
@@ -61,5 +61,9 @@
       },
       "description": "Show or hide the Unfollow Guard panel"
     }
-  }
+  },
+  "host_permissions": [
+    "https://*.cdninstagram.com/*",
+    "https://*.fbcdn.net/*"
+  ]
 }
